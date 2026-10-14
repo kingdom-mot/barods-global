@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import * as local from './content';
 import type { Agent, Property, SearchParams } from './types';
@@ -5,9 +6,13 @@ import type { Agent, Property, SearchParams } from './types';
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase: SupabaseClient | null = url && anonKey ? createClient(url, anonKey) : null;
+// Never let a slow database hold a page: give up after 5s and fall back to built-in content.
+const fetchWithTimeout: typeof fetch = (input, init) =>
+  fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(5000) });
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+export const supabase: SupabaseClient | null =
+  url && anonKey ? createClient(url, anonKey, { global: { fetch: fetchWithTimeout } }) : null;
+
 function mapProperty(r: any): Property {
   const photos = (r.property_media ?? [])
     .filter((m: any) => m.kind === 'photo' && m.is_public)
@@ -67,28 +72,36 @@ function mapAgent(r: any): Agent {
     verified: r.verified,
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const PROPERTY_SELECT =
   '*, property_types(name, slug), states(name, slug), cities(name, slug), areas(name), agents(slug), property_media(url, kind, is_public, sort), property_amenities(amenities(name))';
 
-async function allProperties(): Promise<Property[]> {
+// cache(): one database query per page render, however many components ask.
+const allProperties = cache(async (): Promise<Property[]> => {
   if (!supabase) return local.properties;
-  const { data, error } = await supabase
-    .from('properties')
-    .select(PROPERTY_SELECT)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false });
-  if (error || !data) return local.properties;
-  return data.map(mapProperty);
-}
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .select(PROPERTY_SELECT)
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
+    if (error || !data || data.length === 0) return local.properties;
+    return data.map(mapProperty);
+  } catch {
+    return local.properties;
+  }
+});
 
-export async function getAgents(): Promise<Agent[]> {
+export const getAgents = cache(async (): Promise<Agent[]> => {
   if (!supabase) return local.agents;
-  const { data, error } = await supabase.from('agents').select('*').eq('status', 'active').order('full_name');
-  if (error || !data) return local.agents;
-  return data.map(mapAgent);
-}
+  try {
+    const { data, error } = await supabase.from('agents').select('*').eq('status', 'active').order('full_name');
+    if (error || !data || data.length === 0) return local.agents;
+    return data.map(mapAgent);
+  } catch {
+    return local.agents;
+  }
+});
 
 export async function getAgent(slug: string): Promise<Agent | undefined> {
   return (await getAgents()).find((a) => a.slug === slug);

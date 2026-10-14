@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Manrope } from 'next/font/google';
+import '@fontsource-variable/manrope';
+import '@fontsource/cormorant-garamond/600.css';
+import '@fontsource/cormorant-garamond/700.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getVisitorCurrency } from '@/lib/visitor';
 import './globals.css';
-
-const sans = Manrope({ subsets: ['latin'], variable: '--font-sans' });
-const display = Cormorant_Garamond({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-display' });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://barodsglobal.com'),
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const currency = getVisitorCurrency();
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable}`}>
+    <html lang="en">
       <body>
         <Header currency={currency} />
         <main>{children}</main>

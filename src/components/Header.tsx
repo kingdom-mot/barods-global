@@ -24,7 +24,7 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
     <header className="sticky top-0 z-40 bg-brand-ink text-white shadow-sm">
       <div className="container-site flex h-[76px] items-center gap-6">
         <Link href="/" className="shrink-0" aria-label="Barods Global Limited home">
-          <img src="/brand/logo-white.png" alt="Barods Global Limited" className="h-11 w-auto" />
+          <img src="/brand/logo-white.png" alt="Barods Global Limited" className="h-12 w-auto sm:h-14" />
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-7 lg:flex" aria-label="Main">

@@ -82,16 +82,16 @@ export default async function PropertyPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
-        <img
-          src={p.photos[0]}
-          alt={p.title}
-          className="aspect-[4/3] w-full rounded-xl object-cover sm:col-span-3 sm:row-span-2 sm:aspect-auto sm:h-full"
-        />
-        {p.photos.slice(1, 3).map((src) => (
-          <img key={src} src={src} alt="" className="hidden aspect-[4/3] w-full rounded-xl object-cover sm:block" />
-        ))}
-      </div>
+      {p.photos.length > 1 ? (
+        <div className="grid gap-3 sm:h-[460px] sm:grid-cols-4 sm:grid-rows-2">
+          <img src={p.photos[0]} alt={p.title} className="aspect-[4/3] h-full w-full rounded-xl object-cover sm:col-span-3 sm:row-span-2 sm:aspect-auto" />
+          {p.photos.slice(1, 3).map((src) => (
+            <img key={src} src={src} alt="" className="hidden h-full w-full rounded-xl object-cover sm:block" />
+          ))}
+        </div>
+      ) : (
+        <img src={p.photos[0]} alt={p.title} className="aspect-[4/3] w-full rounded-xl object-cover sm:aspect-auto sm:h-[460px]" />
+      )}
 
       <div className="mt-10 flex flex-wrap gap-10">
         <div className="min-w-0 flex-[999_1_560px] space-y-10">

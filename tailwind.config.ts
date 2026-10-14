@@ -18,8 +18,8 @@ const config: Config = {
         paper: '#F6F7F5',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'Georgia', 'serif'],
+        sans: ['"Manrope Variable"', 'system-ui', 'sans-serif'],
+        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },
       maxWidth: { site: '1200px' },
     },
