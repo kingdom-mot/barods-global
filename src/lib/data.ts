@@ -1,0 +1,148 @@
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import * as local from './content';
+import type { Agent, Property, SearchParams } from './types';
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+export const supabase: SupabaseClient | null = url && anonKey ? createClient(url, anonKey) : null;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapProperty(r: any): Property {
+  const photos = (r.property_media ?? [])
+    .filter((m: any) => m.kind === 'photo' && m.is_public)
+    .sort((a: any, b: any) => a.sort - b.sort)
+    .map((m: any) => m.url);
+  return {
+    ref: r.ref,
+    slug: r.slug,
+    title: r.title,
+    description: r.description ?? undefined,
+    purpose: r.purpose,
+    typeName: r.property_types?.name ?? '',
+    typeSlug: r.property_types?.slug ?? '',
+    countryCode: r.country_code,
+    state: r.states?.name ?? '',
+    stateSlug: r.states?.slug ?? '',
+    city: r.cities?.name ?? '',
+    citySlug: r.cities?.slug ?? '',
+    area: r.areas?.name ?? undefined,
+    price: r.price_on_application ? null : Number(r.price),
+    currency: r.currency,
+    pricePeriod: r.price_period ?? 'once',
+    bedrooms: r.bedrooms ?? undefined,
+    bathrooms: r.bathrooms ?? undefined,
+    toilets: r.toilets ?? undefined,
+    parking: r.parking ?? undefined,
+    floorSizeSqm: r.floor_size_sqm ?? undefined,
+    landSize: r.land_size ?? undefined,
+    condition: r.condition ?? undefined,
+    furnishing: r.furnishing ?? undefined,
+    titleDocument: r.title_document ?? undefined,
+    amenities: (r.property_amenities ?? []).map((a: any) => a.amenities?.name).filter(Boolean),
+    photos,
+    agentSlug: r.agents?.slug ?? '',
+    featured: r.featured,
+    label: r.label ?? undefined,
+    availability: r.availability,
+    publishedAt: r.published_at ?? r.created_at,
+    serviceCharge: r.service_charge_band ?? undefined,
+    agencyFee: r.agency_fee_pct != null ? `${r.agency_fee_pct}% of rent` : undefined,
+    legalFee: r.legal_fee_pct != null ? `${r.legal_fee_pct}% of rent` : undefined,
+    cautionFee: r.caution_fee ?? undefined,
+    minimumTenure: r.minimum_tenure_years ? `${r.minimum_tenure_years} year(s)` : undefined,
+  };
+}
+
+function mapAgent(r: any): Agent {
+  return {
+    slug: r.slug,
+    fullName: r.full_name,
+    position: r.position ?? '',
+    email: r.email,
+    phone: r.phone ?? undefined,
+    whatsapp: r.whatsapp ?? undefined,
+    photoUrl: r.photo_url ?? undefined,
+    bio: r.bio ?? undefined,
+    verified: r.verified,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+const PROPERTY_SELECT =
+  '*, property_types(name, slug), states(name, slug), cities(name, slug), areas(name), agents(slug), property_media(url, kind, is_public, sort), property_amenities(amenities(name))';
+
+async function allProperties(): Promise<Property[]> {
+  if (!supabase) return local.properties;
+  const { data, error } = await supabase
+    .from('properties')
+    .select(PROPERTY_SELECT)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false });
+  if (error || !data) return local.properties;
+  return data.map(mapProperty);
+}
+
+export async function getAgents(): Promise<Agent[]> {
+  if (!supabase) return local.agents;
+  const { data, error } = await supabase.from('agents').select('*').eq('status', 'active').order('full_name');
+  if (error || !data) return local.agents;
+  return data.map(mapAgent);
+}
+
+export async function getAgent(slug: string): Promise<Agent | undefined> {
+  return (await getAgents()).find((a) => a.slug === slug);
+}
+
+export async function getFeatured(limit = 6): Promise<Property[]> {
+  const all = await allProperties();
+  return all.filter((p) => p.featured && p.availability === 'available').slice(0, limit);
+}
+
+export async function getProperty(slug: string): Promise<Property | undefined> {
+  return (await allProperties()).find((p) => p.slug === slug);
+}
+
+export async function getAgentProperties(agentSlug: string): Promise<Property[]> {
+  return (await allProperties()).filter((p) => p.agentSlug === agentSlug);
+}
+
+export async function getCityCounts(): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  for (const p of await allProperties()) counts[p.citySlug] = (counts[p.citySlug] ?? 0) + 1;
+  return counts;
+}
+
+export async function searchProperties(s: SearchParams): Promise<Property[]> {
+  let list = await allProperties();
+  const num = (v?: string) => (v ? Number(v) : undefined);
+
+  // Sold / Let listings are hidden unless asked for.
+  if (s.status === 'sold') list = list.filter((p) => p.availability === 'sold' || p.availability === 'let');
+  else if (s.status !== 'all') list = list.filter((p) => p.availability !== 'sold' && p.availability !== 'let');
+
+  if (s.purpose) list = list.filter((p) => p.purpose === s.purpose);
+  if (s.state) list = list.filter((p) => p.stateSlug === s.state);
+  if (s.city) list = list.filter((p) => p.citySlug === s.city);
+  if (s.type) list = list.filter((p) => p.typeSlug === s.type);
+  if (s.furnishing) list = list.filter((p) => p.furnishing?.toLowerCase() === s.furnishing);
+  const beds = num(s.beds);
+  if (beds) list = list.filter((p) => (p.bedrooms ?? 0) >= beds);
+  const baths = num(s.baths);
+  if (baths) list = list.filter((p) => (p.bathrooms ?? 0) >= baths);
+  const min = num(s.minPrice);
+  if (min) list = list.filter((p) => (p.price ?? 0) >= min);
+  const max = num(s.maxPrice);
+  if (max) list = list.filter((p) => p.price !== null && p.price <= max);
+  if (s.q) {
+    const q = s.q.toLowerCase();
+    list = list.filter((p) =>
+      [p.title, p.ref, p.city, p.area, p.state, p.typeName].some((v) => v?.toLowerCase().includes(q)),
+    );
+  }
+  if (s.sort === 'price-asc') list = [...list].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  if (s.sort === 'price-desc') list = [...list].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+  return list;
+}
+
+export { local };

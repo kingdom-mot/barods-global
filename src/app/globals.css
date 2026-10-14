@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white font-sans text-brand-ink antialiased;
+  }
+  a {
+    @apply transition-colors;
+  }
+}
+
+@layer components {
+  .container-site {
+    @apply mx-auto w-full max-w-site px-4 sm:px-6;
+  }
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold transition-colors;
+  }
+  .btn-green {
+    @apply btn bg-brand-green text-white hover:bg-brand-greenDark;
+  }
+  .btn-outline {
+    @apply btn border border-brand-ink text-brand-ink hover:bg-brand-ink hover:text-white;
+  }
+  .field {
+    @apply w-full rounded-md border border-line bg-white px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20;
+  }
+  .label {
+    @apply flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .section-title {
+    @apply font-display text-3xl text-brand-ink sm:text-4xl;
+  }
+  .section-sub {
+    @apply mt-2 text-muted;
+  }
+  .badge {
+    @apply inline-block rounded px-2 py-1 text-[11px] font-bold uppercase tracking-wide;
+  }
+}
