@@ -95,13 +95,16 @@ select g, n, lower(regexp_replace(n, '[^A-Za-z0-9]+', '-', 'g')), m from (values
 on conflict (slug) do nothing;
 
 -- Team (Meet Our Team) — from the current site
-insert into team_members (full_name, role, email, sort) values
+insert into team_members (full_name, role, email, sort)
+select * from (values
   ('Babatunde Denton', 'CEO', 'tunde@barodsglobal.com', 1),
   ('ESV Ajibola Akinwande ANIVS, RSV', 'General Manager', 'ajibola@barodsglobal.com', 2),
   ('Lawrita C. Agbor', 'HR / Senior Property Consultant', 'lawrita@barodsglobal.com', 3),
   ('Lolade Ogundimu', 'Executive Secretary', 'lolade@barodsglobal.com', 4),
   ('Kehinde Oregbesan', 'Lead Architect', 'kehinde@barodsglobal.com', 5),
-  ('Toyosi Akinbobola', 'Property Consultant', 'toyosi@barodsglobal.com', 6);
+  ('Toyosi Akinbobola', 'Property Consultant', 'toyosi@barodsglobal.com', 6)
+) v(full_name, role, email, sort)
+where not exists (select 1 from team_members);
 
 -- Agents (public profiles)
 insert into agents (slug, full_name, position, email, verified, status) values

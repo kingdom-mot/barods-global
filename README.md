@@ -16,7 +16,9 @@ and enquiry forms are accepted but not stored.
 
 ## Database
 
-Run the SQL in `supabase/migrations/` in order (Supabase → SQL editor, or `supabase db push`):
+**Quickest:** open `supabase/setup.sql`, copy its entire contents, paste into Supabase → SQL Editor → New query, and click Run. It contains everything below plus row-level security on every table, and is safe to run more than once.
+
+The same SQL is also split into `supabase/migrations/` (for `supabase db push`):
 
 1. `0001_schema.sql` — locations (country › state › city › area), agents, properties, leads, content, row-level security,
    owner-account protection.
