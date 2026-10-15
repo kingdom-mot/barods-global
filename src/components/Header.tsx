@@ -32,7 +32,7 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
             <Link
               key={n.href}
               href={n.href}
-              className={`text-[15px] font-medium hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-brand-ink'}`}
+              className={`text-[15px] font-bold hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-brand-ink'}`}
             >
               {n.label}
             </Link>
@@ -63,7 +63,7 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
         <div className="border-t border-line bg-white lg:hidden">
           <nav className="container-site flex flex-col py-3" aria-label="Mobile">
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className={`py-3 text-base font-medium hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-brand-ink'}`}>
+              <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className={`py-3 text-base font-bold hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-brand-ink'}`}>
                 {n.label}
               </Link>
             ))}
