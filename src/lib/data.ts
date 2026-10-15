@@ -112,7 +112,9 @@ export async function getAgent(slug: string): Promise<Agent | undefined> {
   return (await getAgents()).find((a) => a.slug === slug);
 }
 
+/** Homepage: at most 6 featured listings. The rest still lead the Properties page. */
 export async function getFeatured(limit = 6): Promise<Property[]> {
+  limit = Math.min(limit, 6);
   const all = await allProperties();
   return all.filter((p) => p.featured && p.availability === 'available').slice(0, limit);
 }
@@ -208,6 +210,8 @@ export async function searchProperties(s: SearchParams): Promise<Property[]> {
       [p.title, p.ref, p.city, p.area, p.state, p.typeName].some((v) => v?.toLowerCase().includes(q)),
     );
   }
+  // Default order: featured listings first (newest first within each group). Price sorts ignore featuring.
+  if (!s.sort || s.sort === 'newest') list = [...list].sort((a, b) => Number(b.featured) - Number(a.featured));
   if (s.sort === 'price-asc') list = [...list].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
   if (s.sort === 'price-desc') list = [...list].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
   return list;

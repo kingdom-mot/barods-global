@@ -13,7 +13,7 @@ const reviews = [
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts] = await Promise.all([getFeatured(8), getAgents(), getCityCounts()]);
+  const [featured, agents, counts] = await Promise.all([getFeatured(6), getAgents(), getCityCounts()]);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
 
   return (
