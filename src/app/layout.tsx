@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import '@fontsource-variable/manrope';
 import '@fontsource/cormorant-garamond/600.css';
 import '@fontsource/cormorant-garamond/700.css';
+import { Suspense } from 'react';
 import Header from '@/components/Header';
+import ScrollToTop from '@/components/ScrollToTop';
 import Footer from '@/components/Footer';
 import { getVisitorCurrency } from '@/lib/visitor';
 import './globals.css';
@@ -21,6 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <Suspense fallback={null}>
+          <ScrollToTop />
+        </Suspense>
         <Header currency={currency} />
         <main>{children}</main>
         <Footer />

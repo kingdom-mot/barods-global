@@ -27,6 +27,7 @@ export interface Property {
   city: string;
   citySlug: string;
   area?: string;
+  address?: string;
   price: number | null;
   currency: 'NGN' | 'ZAR';
   pricePeriod: 'once' | 'year' | 'month' | 'night';
@@ -46,6 +47,9 @@ export interface Property {
   label?: string;
   availability: Availability;
   publishedAt: string;
+  updatedAt?: string;
+  videoUrl?: string;
+  virtualTourUrl?: string;
   // rent terms (NG)
   serviceCharge?: string;
   agencyFee?: string;

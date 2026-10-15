@@ -23,7 +23,14 @@ export async function POST(req: Request) {
     name: String(b.name).slice(0, 120),
     phone: String(b.phone).slice(0, 40),
     email: b.email ? String(b.email).slice(0, 160) : null,
-    message: b.message ? String(b.message).slice(0, 2000) : null,
+    message: [
+      b.role ? `I'm a: ${String(b.role).slice(0, 30)}` : '',
+      b.tourType ? `Tour: ${String(b.tourType).slice(0, 30)}` : '',
+      b.message ? String(b.message).slice(0, 2000) : '',
+    ]
+      .filter(Boolean)
+      .join('\n') || null,
+    viewing_at: typeof b.viewingAt === 'string' && !Number.isNaN(Date.parse(b.viewingAt)) ? b.viewingAt : null,
     source: ['property_enquiry', 'viewing_request', 'contact', 'agent_profile', 'service'].includes(b.source) ? b.source : 'contact',
     property_id: property?.data?.id ?? null,
     agent_id: agent?.data?.id ?? property?.data?.agent_id ?? null,

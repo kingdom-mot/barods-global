@@ -45,7 +45,7 @@ export default function PropertyCard({
         </div>
         {agent && (
           <Link
-            href={`/agent/${agent.slug}`}
+            href={`/agent/${agent.slug}?from=${encodeURIComponent(p.slug)}`}
             className="absolute -bottom-5 left-3.5 h-11 w-11 overflow-hidden rounded-full border-[3px] border-white bg-brand-ink shadow"
             aria-label={`Listed by ${agent.fullName}`}
             title={`Listed by ${agent.fullName}`}

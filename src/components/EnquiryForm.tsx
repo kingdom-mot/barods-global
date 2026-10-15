@@ -8,12 +8,14 @@ export default function EnquiryForm({
   source = 'property_enquiry',
   defaultMessage = '',
   allowViewing = false,
+  askRole = false,
 }: {
   propertyRef?: string;
   agentSlug?: string;
   source?: string;
   defaultMessage?: string;
   allowViewing?: boolean;
+  askRole?: boolean;
 }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
@@ -26,6 +28,7 @@ export default function EnquiryForm({
       phone: form.get('phone'),
       email: form.get('email'),
       message: form.get('message'),
+      role: form.get('role'),
       source: form.get('viewing') ? 'viewing_request' : source,
       propertyRef,
       agentSlug,
@@ -47,6 +50,14 @@ export default function EnquiryForm({
       <label className="label">Full name<input name="name" required className="field" autoComplete="name" /></label>
       <label className="label">Phone / WhatsApp<input name="phone" type="tel" required className="field" autoComplete="tel" /></label>
       <label className="label">Email (optional)<input name="email" type="email" className="field" autoComplete="email" /></label>
+      {askRole && (
+        <label className="label">
+          I’m a
+          <select name="role" className="field" defaultValue="Buyer">
+            {['Buyer', 'Tenant', 'Investor', 'Agent', 'Other'].map((r) => <option key={r}>{r}</option>)}
+          </select>
+        </label>
+      )}
       <label className="label">
         Message
         <textarea name="message" rows={4} defaultValue={defaultMessage} className="field" />
