@@ -139,7 +139,9 @@ export default function MortgageCalculator({
   const showVisitor = visitorCurrency !== code;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="space-y-6">
+      {/* Inputs and results share their own grid, so the sticky results card can't slide past the calculator */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* Inputs */}
       <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -240,7 +242,7 @@ export default function MortgageCalculator({
       </div>
 
       {/* Results */}
-      <div className="self-start rounded-xl bg-brand-ink p-5 text-white lg:sticky lg:top-24" aria-live="polite">
+      <div className="rounded-xl bg-brand-ink p-5 text-white lg:sticky lg:top-[150px]" aria-live="polite">
         <div className="text-xs font-semibold uppercase tracking-wide text-white/60">Estimated monthly payment</div>
         <div className="mt-1 text-3xl font-extrabold text-brand-green">{money(r.totalMonthly, code)}</div>
         {showVisitor && <div className="text-sm text-white/70">≈ {money(convert(r.totalMonthly, code, visitorCurrency), visitorCurrency)} in your currency</div>}
@@ -276,8 +278,10 @@ export default function MortgageCalculator({
         </div>
       </div>
 
-      {/* Rules and warnings span both columns */}
-      <div className="space-y-3 lg:col-span-2">
+      </div>
+
+      {/* Rules and warnings sit below, full width */}
+      <div className="space-y-3">
         {r.warnings.map((w) => (
           <p key={w} className="rounded-lg border border-brand-orange/40 bg-brand-orange/10 p-3 text-sm text-brand-ink" role="alert">{w}</p>
         ))}
