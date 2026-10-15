@@ -21,7 +21,7 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-brand-ink">
         <img
-          src="https://barodsglobal.com/wp-content/uploads/2025/08/1-584x438.png"
+          src="/wp-content/uploads/2025/08/1-584x438.png"
           alt=""
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />

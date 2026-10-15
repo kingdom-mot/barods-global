@@ -23,6 +23,7 @@ export default async function PortalLayout({ children }: { children: React.React
     { href: '/portal/listings', label: me.isStaff ? 'All listings' : 'My listings' },
     { href: '/portal/leads', label: me.isStaff ? 'All leads' : 'My leads', badge: newLeads ?? 0 },
     ...(me.isStaff ? [{ href: '/portal/approvals', label: 'Approvals', badge: pending ?? 0 }] : []),
+    ...(me.isStaff ? [{ href: '/portal/import', label: 'Import from WordPress' }] : []),
     ...(me.agent ? [{ href: '/portal/profile', label: 'My profile' }] : []),
     { href: '/portal/set-password', label: 'Change password' },
   ];

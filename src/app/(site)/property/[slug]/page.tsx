@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
 import MortgageCalculator from '@/components/MortgageCalculator';
 import PropertyCard, { statusBadge } from '@/components/PropertyCard';
@@ -9,7 +9,7 @@ import ScheduleTour from '@/components/ScheduleTour';
 import ShareBar from '@/components/ShareBar';
 import { SpecIcon } from '@/components/SpecIcons';
 import { formatPrice } from '@/lib/currency';
-import { getAgent, getAgents, getProperty, searchProperties } from '@/lib/data';
+import { getAgent, getAgents, getProperty, getPropertyByWpSlug, searchProperties } from '@/lib/data';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 type Props = { params: { slug: string } };
@@ -43,7 +43,11 @@ function youTubeEmbed(url: string) {
 
 export default async function PropertyPage({ params }: Props) {
   const p = await getProperty(params.slug);
-  if (!p) notFound();
+  if (!p) {
+    const moved = await getPropertyByWpSlug(params.slug);
+    if (moved) permanentRedirect(`/property/${moved.slug}`);
+    notFound();
+  }
   const currency = getVisitorCurrency();
   const [agent, agents, similarAll] = await Promise.all([
     getAgent(p.agentSlug),

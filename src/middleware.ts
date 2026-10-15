@@ -52,4 +52,4 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ['/((?!_next|api|auth|brand|favicon.ico).*)'] };
+export const config = { matcher: ['/((?!_next|api|auth|brand|wp-content|search-result|favicon.ico|sitemap.xml|robots.txt).*)'] };

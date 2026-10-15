@@ -67,3 +67,16 @@ Logos in `public/brand/`.
 
 Portal: `/portal` · dashboard, add/edit listings (6-step form), my listings (mark Sold/Let without review), leads, profile.
 Admins also get **Approvals** (approve or send back with a note) and see every listing and lead.
+
+## Moving off WordPress
+
+1. Run `supabase/migrations/0005_wordpress_import.sql` in the Supabase SQL Editor.
+2. In Vercel → Settings → Environment Variables add `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API Keys → service_role / secret).
+   Server-only: never prefix it with NEXT_PUBLIC. Redeploy.
+3. Sign in as an admin → **Import from WordPress** → **Import everything from WordPress**. Keep the page open until the bar is full.
+   It reads barodsglobal.com's public WordPress API: listings (all photos, price, type, location, agent, features, labels),
+   agents, and the images used on the site, then copies every image into the `wp-media` storage bucket.
+   Re-running updates instead of duplicating; run it once more just before the domain moves.
+4. Old addresses keep working: `/property/…` and `/agent/…` are unchanged, everything else is mapped in `next.config.mjs`.
+   Old image links (`/wp-content/uploads/…`) are served from Supabase once copied (falling back to WordPress until then).
+5. Then point barodsglobal.com at Vercel and submit `https://barodsglobal.com/sitemap.xml` in Google Search Console.

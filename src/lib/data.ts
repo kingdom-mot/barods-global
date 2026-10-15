@@ -21,6 +21,7 @@ function mapProperty(r: any): Property {
   return {
     ref: r.ref,
     slug: r.slug,
+    wpSlug: r.wp_slug ?? undefined,
     title: r.title,
     description: r.description ?? undefined,
     purpose: r.purpose,
@@ -120,6 +121,17 @@ export async function getProperty(slug: string): Promise<Property | undefined> {
   return (await allProperties()).find((p) => p.slug === slug);
 }
 
+/** An old WordPress address (e.g. with an emoji in it) → the listing now at a clean address. */
+export async function getPropertyByWpSlug(slug: string): Promise<Property | undefined> {
+  let decoded = slug;
+  try {
+    decoded = decodeURIComponent(slug);
+  } catch {
+    /* already decoded */
+  }
+  return (await allProperties()).find((p) => p.wpSlug === decoded || p.wpSlug === slug);
+}
+
 export async function getAgentProperties(agentSlug: string): Promise<Property[]> {
   return (await allProperties()).filter((p) => p.agentSlug === agentSlug);
 }
@@ -128,6 +140,28 @@ export async function getCityCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   for (const p of await allProperties()) counts[p.citySlug] = (counts[p.citySlug] ?? 0) + 1;
   return counts;
+}
+
+// A search for a whole group ("House", "Land") or an old WordPress type name matches every type in it.
+const GROUP_SLUG: Record<string, string> = { 'Flat / Apartment': 'flat-apartment', House: 'house', Land: 'land', Commercial: 'commercial' };
+const TYPE_GROUPS: Record<string, string[]> = Object.fromEntries(
+  local.propertyTypes.map((g) => [GROUP_SLUG[g.group], g.items.map(([slug]) => slug as string)]),
+);
+TYPE_GROUPS.bungalow = ['detached-bungalow', 'semi-detached-bungalow'];
+const TYPE_ALIASES: Record<string, string> = {
+  apartments: 'flat-apartment',
+  houses: 'house',
+  residential: 'house',
+  office: 'office-space',
+  condo: 'apartment',
+  studio: 'self-contain',
+  townhome: 'terraced-duplex',
+  'multi-family-home': 'block-of-flats',
+  'single-family-home': 'detached-duplex',
+};
+function typeMatches(slug: string, filter: string) {
+  const f = TYPE_ALIASES[filter] ?? filter;
+  return slug === f || (TYPE_GROUPS[f]?.includes(slug) ?? false);
 }
 
 export async function searchProperties(s: SearchParams): Promise<Property[]> {
@@ -144,6 +178,7 @@ export async function searchProperties(s: SearchParams): Promise<Property[]> {
     // Free-text location: every comma-separated part must match the area, city, state or country.
     const parts = s.location
       .toLowerCase()
+      .replace(/-/g, ' ')
       .split(',')
       .map((t) => t.replace(/\bstate\b/g, '').replace(/\s+/g, ' ').trim())
       .filter(Boolean);
@@ -157,7 +192,7 @@ export async function searchProperties(s: SearchParams): Promise<Property[]> {
     });
   }
   if (s.city) list = list.filter((p) => p.citySlug === s.city);
-  if (s.type) list = list.filter((p) => p.typeSlug === s.type);
+  if (s.type) list = list.filter((p) => typeMatches(p.typeSlug, s.type!));
   if (s.furnishing) list = list.filter((p) => p.furnishing?.toLowerCase() === s.furnishing);
   const beds = num(s.beds);
   if (beds) list = list.filter((p) => (p.bedrooms ?? 0) >= beds);

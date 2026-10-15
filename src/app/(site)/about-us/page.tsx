@@ -29,7 +29,7 @@ export default function AboutPage() {
             property with confidence.
           </p>
         </div>
-        <img src="https://barodsglobal.com/wp-content/uploads/2025/07/Barods-image.jpeg" alt="Barods Global project" className="w-full rounded-xl object-cover" />
+        <img src="/wp-content/uploads/2025/07/Barods-image.jpeg" alt="Barods Global project" className="w-full rounded-xl object-cover" />
       </section>
 
       <section className="bg-paper py-14">

@@ -2,7 +2,8 @@
 // Used when Supabase is not configured, and mirrors supabase/migrations/0002_seed.sql.
 import type { Agent, Property, TeamMember } from './types';
 
-const WP = 'https://barodsglobal.com/wp-content/uploads';
+// Old WordPress image paths: served from Supabase once copied (see app/wp-content/uploads).
+const WP = '/wp-content/uploads';
 
 export const contact = {
   address: 'Suite B104, Providence Mall, Opposite Globus Bank, Leme Abiola Way, Abeokuta',

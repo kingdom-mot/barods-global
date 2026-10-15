@@ -16,6 +16,7 @@ export interface Agent {
 export interface Property {
   ref: string;
   slug: string;
+  wpSlug?: string;
   title: string;
   description?: string;
   purpose: Purpose;
