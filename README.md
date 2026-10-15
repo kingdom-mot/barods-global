@@ -49,3 +49,20 @@ email + WhatsApp lead alerts, Google reviews feed, Mapbox maps, content migratio
 
 Colours from the official logo: green `#56B91E` (text-safe `#3D7F16`), charcoal `#231F20`, orange `#DD6236`.
 Logos in `public/brand/`.
+
+## Agent portal (sign-in) setup
+
+1. Run `supabase/migrations/0004_agent_portal.sql` in the Supabase SQL Editor (also included in `setup.sql`).
+2. **Authentication → Sign In / Providers → Email**: turn off **Allow new users to sign up**. Accounts are invite-only.
+3. **Authentication → URL Configuration**: set **Site URL** to the live site (e.g. `https://barods-global-sable.vercel.app`, later `https://barodsglobal.com`)
+   and add `https://barods-global-sable.vercel.app/**` and `http://localhost:3000/**` to **Redirect URLs**.
+4. **Authentication → Email Templates → Invite user**: make the link
+   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/portal/set-password`
+5. **Authentication → Users → Invite user**: invite each person by their `@barodsglobal.com` address.
+   - `tunde@barodsglobal.com` becomes the owner (super admin, can't be removed).
+   - Anyone whose email matches an existing agent card is linked to it; everyone else gets a new card, hidden until they add a photo and phone number.
+   - Other domains are rejected by the database.
+6. Supabase's built-in email sends only a few messages an hour; add custom SMTP (Authentication → Emails) before inviting the whole team.
+
+Portal: `/portal` · dashboard, add/edit listings (6-step form), my listings (mark Sold/Let without review), leads, profile.
+Admins also get **Approvals** (approve or send back with a note) and see every listing and lead.
