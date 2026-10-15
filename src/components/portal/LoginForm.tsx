@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import PasswordInput from '@/components/PasswordInput';
 import { BARODS_DOMAIN, createClient } from '@/lib/supabase/browser';
 
 export default function LoginForm({ next, notice }: { next: string; notice?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [show, setShow] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,12 +44,7 @@ export default function LoginForm({ next, notice }: { next: string; notice?: str
       </label>
       <label className="label">
         Password
-        <span className="relative">
-          <input name="password" type={show ? 'text' : 'password'} className="field pr-16" autoComplete="current-password" required />
-          <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs font-semibold normal-case tracking-normal text-brand-greenDark">
-            {show ? 'Hide' : 'Show'}
-          </button>
-        </span>
+        <PasswordInput name="password" autoComplete="current-password" required />
       </label>
       {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
       <button type="submit" className="btn-green" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>

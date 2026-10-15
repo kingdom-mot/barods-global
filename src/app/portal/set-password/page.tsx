@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
+import PasswordInput from '@/components/PasswordInput';
 import { setPassword } from '../actions';
 
 /** Reached from the invite email (first password) or the reset email, or from the menu. */
@@ -26,8 +27,8 @@ export default function SetPasswordPage() {
           });
         }}
       >
-        <label className="label">New password<input name="p1" type="password" minLength={8} className="field" autoComplete="new-password" required /></label>
-        <label className="label">Type it again<input name="p2" type="password" minLength={8} className="field" autoComplete="new-password" required /></label>
+        <label className="label">New password<PasswordInput name="p1" minLength={8} autoComplete="new-password" required /></label>
+        <label className="label">Type it again<PasswordInput name="p2" minLength={8} autoComplete="new-password" required /></label>
         {msg && <p className={`rounded-lg p-3 text-sm ${msg.ok ? 'bg-brand-greenLight text-brand-greenDark' : 'bg-red-50 text-red-800'}`} role="status">{msg.text}</p>}
         <button type="submit" className="btn-green w-full" disabled={pending}>{pending ? 'Saving…' : 'Save password'}</button>
         {msg?.ok && <Link href="/portal" className="btn-outline w-full">Go to my dashboard</Link>}
