@@ -21,10 +21,10 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
   return (
-    <header className="sticky top-0 z-40 bg-brand-ink text-white shadow-sm">
+    <header className="sticky top-0 z-40 border-b border-line bg-white text-brand-ink shadow-sm">
       <div className="container-site flex h-[76px] items-center gap-6">
         <Link href="/" className="shrink-0" aria-label="Barods Global Limited home">
-          <img src="/brand/logo-white.png" alt="Barods Global Limited" className="h-12 w-auto sm:h-14" />
+          <img src="/brand/logo.png" alt="Barods Global Limited" className="h-12 w-auto sm:h-14" />
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-7 lg:flex" aria-label="Main">
@@ -32,7 +32,7 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
             <Link
               key={n.href}
               href={n.href}
-              className={`text-[15px] font-medium hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-white'}`}
+              className={`text-[15px] font-medium hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-brand-ink'}`}
             >
               {n.label}
             </Link>
@@ -48,7 +48,7 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
 
         <button
           type="button"
-          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/30 lg:hidden"
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-md border border-line lg:hidden"
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
           onClick={() => setOpen(!open)}
@@ -60,10 +60,10 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
       </div>
 
       {open && (
-        <div className="border-t border-white/10 lg:hidden">
+        <div className="border-t border-line bg-white lg:hidden">
           <nav className="container-site flex flex-col py-3" aria-label="Mobile">
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className="py-3 text-base hover:text-brand-green">
+              <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className={`py-3 text-base font-medium hover:text-brand-green ${isActive(n.href) ? 'text-brand-green' : 'text-brand-ink'}`}>
                 {n.label}
               </Link>
             ))}

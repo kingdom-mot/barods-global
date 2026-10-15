@@ -17,7 +17,8 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
   const currency = getVisitorCurrency();
   const [results, agents] = await Promise.all([searchProperties(searchParams), getAgents()]);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
-  const heading = searchParams.purpose ? `Properties ${PURPOSE_TITLE[searchParams.purpose] ?? ''}` : 'All properties';
+  const baseHeading = searchParams.purpose ? `Properties ${PURPOSE_TITLE[searchParams.purpose] ?? ''}` : 'All properties';
+  const heading = searchParams.location?.trim() ? `${baseHeading} in ${searchParams.location.trim().replace(/\b\w/g, (c) => c.toUpperCase())}` : baseHeading;
 
   const sortLink = (sort: string) => {
     const q = new URLSearchParams(searchParams as Record<string, string>);
@@ -38,7 +39,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
           <form action="/properties" method="get" className="flex flex-col gap-4 rounded-xl border border-line p-5">
             <h2 className="font-semibold">More search options</h2>
             {/* keep the top-bar choices when refining */}
-            {(['purpose', 'state', 'type', 'maxPrice', 'beds'] as const).map(
+            {(['purpose', 'location', 'state', 'city', 'type', 'maxPrice', 'beds', 'sort'] as const).map(
               (k) => searchParams[k] && <input key={k} type="hidden" name={k} value={searchParams[k]} />,
             )}
             <label className="label">
@@ -83,9 +84,9 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
               </p>
             </div>
             <div className="flex gap-2 text-sm" role="group" aria-label="Sort">
-              <Link href={sortLink('newest')} className="rounded-md border border-line px-3 py-2 hover:border-brand-ink">Newest</Link>
-              <Link href={sortLink('price-asc')} className="rounded-md border border-line px-3 py-2 hover:border-brand-ink">Price ↑</Link>
-              <Link href={sortLink('price-desc')} className="rounded-md border border-line px-3 py-2 hover:border-brand-ink">Price ↓</Link>
+              <Link href={sortLink('newest')} className="rounded-md border border-line px-3 py-2 hover:border-brand-green hover:text-brand-green">Newest</Link>
+              <Link href={sortLink('price-asc')} className="rounded-md border border-line px-3 py-2 hover:border-brand-green hover:text-brand-green">Price ↑</Link>
+              <Link href={sortLink('price-desc')} className="rounded-md border border-line px-3 py-2 hover:border-brand-green hover:text-brand-green">Price ↓</Link>
             </div>
           </div>
 
@@ -96,7 +97,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
               <Link href="/contact-us" className="btn-green mt-5">Talk to an agent</Link>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {results.map((p) => (
                 <PropertyCard key={p.ref} property={p} agent={agentBySlug.get(p.agentSlug)} currency={currency} />
               ))}

@@ -14,7 +14,7 @@ export default function CurrencySwitcher({ current }: { current: CurrencyCode })
           document.cookie = `currency=${e.target.value}; path=/; max-age=${60 * 60 * 24 * 180}`;
           router.refresh();
         }}
-        className="h-10 rounded-md border border-white/30 bg-transparent px-2 text-sm text-white [&>option]:text-brand-ink"
+        className="select h-10 rounded-md border border-line bg-white pl-3 text-sm font-medium text-brand-ink outline-none focus:border-brand-green"
       >
         {(Object.keys(CURRENCIES) as CurrencyCode[]).map((c) => (
           <option key={c} value={c}>

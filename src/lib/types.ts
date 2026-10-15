@@ -64,6 +64,7 @@ export interface TeamMember {
 export interface SearchParams {
   purpose?: string;
   q?: string;
+  location?: string;
   state?: string;
   city?: string;
   type?: string;

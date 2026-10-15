@@ -136,6 +136,22 @@ export async function searchProperties(s: SearchParams): Promise<Property[]> {
 
   if (s.purpose) list = list.filter((p) => p.purpose === s.purpose);
   if (s.state) list = list.filter((p) => p.stateSlug === s.state);
+  if (s.location?.trim()) {
+    // Free-text location: every comma-separated part must match the area, city, state or country.
+    const parts = s.location
+      .toLowerCase()
+      .split(',')
+      .map((t) => t.replace(/\bstate\b/g, '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    const country: Record<string, string> = { NG: 'nigeria', ZA: 'south africa' };
+    list = list.filter((p) => {
+      const haystack = [p.area, p.city, p.state, p.stateSlug.replace(/-/g, ' '), country[p.countryCode]]
+        .filter(Boolean)
+        .join(' | ')
+        .toLowerCase();
+      return parts.every((t) => haystack.includes(t));
+    });
+  }
   if (s.city) list = list.filter((p) => p.citySlug === s.city);
   if (s.type) list = list.filter((p) => p.typeSlug === s.type);
   if (s.furnishing) list = list.filter((p) => p.furnishing?.toLowerCase() === s.furnishing);

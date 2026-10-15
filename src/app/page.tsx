@@ -13,7 +13,7 @@ const reviews = [
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts] = await Promise.all([getFeatured(), getAgents(), getCityCounts()]);
+  const [featured, agents, counts] = await Promise.all([getFeatured(8), getAgents(), getCityCounts()]);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
 
   return (
@@ -23,9 +23,11 @@ export default async function HomePage() {
         <img
           src="https://barodsglobal.com/wp-content/uploads/2025/08/1-584x438.png"
           alt=""
-          className="absolute inset-0 -z-10 h-full w-full object-cover opacity-40"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-ink/40 to-brand-ink/80" />
+        {/* Brand overlay: charcoal into Barods green, so the photo reads through but text stays legible */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-ink/90 via-brand-ink/65 to-brand-greenDark/80" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-1.5 bg-brand-green" />
         <div className="container-site py-20 text-center sm:py-28">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-brand-green">Real Estate and Construction</p>
           <h1 className="font-display text-4xl text-white sm:text-6xl">Welcome To Barods Global Limited</h1>
@@ -45,7 +47,7 @@ export default async function HomePage() {
           <h2 className="section-title">Discover Our Featured Properties</h2>
           <p className="section-sub">Hand-picked homes and land from the Barods team</p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 justify-center gap-5 sm:grid-cols-[repeat(auto-fit,minmax(250px,280px))]">
           {featured.map((p) => (
             <PropertyCard key={p.ref} property={p} agent={agentBySlug.get(p.agentSlug)} currency={currency} />
           ))}
@@ -88,29 +90,37 @@ export default async function HomePage() {
             your experience.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-5 lg:grid-cols-4">
           {team.slice(0, 4).map((m) => (
-            <div key={m.email} className="overflow-hidden rounded-xl border border-line">
-              <img src={m.photoUrl} alt={m.name} className="aspect-square w-full object-cover" loading="lazy" />
-              <div className="p-4">
-                <div className="font-semibold">{m.name}</div>
-                <div className="text-sm text-muted">{m.role}</div>
-                <a href={`mailto:${m.email}`} className="mt-1 block text-sm text-brand-greenDark hover:underline">{m.email}</a>
+            <div key={m.email} className="flex flex-col overflow-hidden rounded-xl border border-line bg-white transition-shadow hover:shadow-md">
+              <img src={m.photoUrl} alt={m.name} className="aspect-[4/5] w-full object-cover object-top" loading="lazy" />
+              <div className="flex-1 p-3.5 text-center">
+                <div className="text-[15px] font-semibold leading-snug">{m.name}</div>
+                <div className="mt-0.5 text-[13px] text-muted">{m.role}</div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Partners */}
-      <section className="border-y border-line py-12">
-        <div className="container-site">
-          <h2 className="mb-8 text-center font-display text-2xl">Our Trusted Partners</h2>
-          <div className="grid grid-cols-3 items-center gap-6 sm:grid-cols-5 lg:grid-cols-9">
-            {partners.map((src) => (
-              <img key={src} src={src} alt="Partner logo" className="mx-auto max-h-14 w-auto object-contain grayscale transition hover:grayscale-0" loading="lazy" />
+      {/* Partners: endless carousel; the list is doubled so the loop has no gap */}
+      <section className="border-y border-line bg-white py-14">
+        <h2 className="mb-8 text-center font-display text-3xl">Our Trusted Partners</h2>
+        <div
+          className="marquee overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
+          aria-label="Partner logos"
+        >
+          <ul className="marquee-track flex w-max gap-6">
+            {[...partners, ...partners].map((src, i) => (
+              <li
+                key={i}
+                aria-hidden={i >= partners.length}
+                className="flex h-28 w-48 shrink-0 items-center justify-center rounded-xl border border-line bg-white p-4 shadow-sm"
+              >
+                <img src={src} alt={i < partners.length ? 'Partner logo' : ''} className="max-h-20 w-auto object-contain" loading="lazy" />
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 

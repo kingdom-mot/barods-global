@@ -35,13 +35,13 @@ export default function AboutPage() {
       <section className="bg-paper py-14">
         <div className="container-site">
           <h2 className="section-title mb-8 text-center">Meet Our Team</h2>
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+          <div className="mx-auto grid max-w-5xl grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
             {team.map((m) => (
-              <div key={m.email} className="overflow-hidden rounded-xl border border-line bg-white">
-                <img src={m.photoUrl} alt={m.name} className="aspect-square w-full object-cover" loading="lazy" />
-                <div className="p-4">
-                  <div className="font-semibold">{m.name}</div>
-                  <div className="text-sm text-muted">{m.role}</div>
+              <div key={m.email} className="flex flex-col overflow-hidden rounded-xl border border-line bg-white transition-shadow hover:shadow-md">
+                <img src={m.photoUrl} alt={m.name} className="aspect-[4/5] w-full object-cover object-top" loading="lazy" />
+                <div className="flex-1 p-3.5 text-center">
+                  <div className="text-[15px] font-semibold leading-snug">{m.name}</div>
+                  <div className="mt-0.5 text-[13px] text-muted">{m.role}</div>
                 </div>
               </div>
             ))}

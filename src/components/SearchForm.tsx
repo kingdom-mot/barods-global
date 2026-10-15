@@ -1,7 +1,10 @@
-import { nigeriaStates, propertyTypes, southAfricaProvinces } from '@/lib/content';
+import { cities, nigeriaStates, propertyTypes, southAfricaProvinces } from '@/lib/content';
 import type { SearchParams } from '@/lib/types';
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z]+/g, '-');
+// Suggestions only: visitors can type any area, city or state.
+const LOCATION_SUGGESTIONS = Array.from(
+  new Set([...cities.map((c) => `${c.name}, ${c.state}`), ...nigeriaStates, ...southAfricaProvinces, 'Nigeria', 'South Africa']),
+);
 
 const PRICE_STEPS = [
   ['5000000', '₦5M'], ['10000000', '₦10M'], ['25000000', '₦25M'], ['50000000', '₦50M'],
@@ -25,7 +28,7 @@ export default function SearchForm({ values = {}, variant = 'hero' }: { values?:
         ].map(([v, label]) => (
           <label key={v} className="cursor-pointer">
             <input type="radio" name="purpose" value={v} defaultChecked={purpose === v} className="peer sr-only" />
-            <span className="inline-flex min-h-[44px] items-center rounded-md border border-line px-5 text-sm font-semibold peer-checked:border-brand-ink peer-checked:bg-brand-ink peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-green">
+            <span className="inline-flex min-h-[44px] items-center rounded-md bg-brand-green px-6 text-sm font-semibold text-brand-ink transition-colors hover:text-white peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-ink peer-focus-visible:ring-offset-2">
               {label}
             </span>
           </label>
@@ -34,16 +37,19 @@ export default function SearchForm({ values = {}, variant = 'hero' }: { values?:
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="label">
-          State
-          <select name="state" defaultValue={values.state ?? ''} className="field">
-            <option value="">All locations</option>
-            <optgroup label="Nigeria">
-              {nigeriaStates.map((s) => <option key={s} value={slug(s)}>{s}</option>)}
-            </optgroup>
-            <optgroup label="South Africa">
-              {southAfricaProvinces.map((s) => <option key={s} value={slug(s)}>{s}</option>)}
-            </optgroup>
-          </select>
+          Location
+          <input
+            name="location"
+            type="search"
+            list="location-suggestions"
+            defaultValue={values.location ?? ''}
+            placeholder="Area, city or state"
+            autoComplete="off"
+            className="field"
+          />
+          <datalist id="location-suggestions">
+            {LOCATION_SUGGESTIONS.map((l) => <option key={l} value={l} />)}
+          </datalist>
         </label>
         <label className="label">
           Property type

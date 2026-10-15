@@ -32,16 +32,21 @@ export default async function AgentPage({ params }: Props) {
           </div>
         </div>
       </section>
-      <section className="container-site flex flex-wrap gap-10 py-12">
-        <div className="min-w-0 flex-[999_1_560px]">
-          <h2 className="mb-6 font-display text-2xl">{firstName}’s listings ({listings.length})</h2>
-          <div className="grid gap-6 sm:grid-cols-2">
-            {listings.map((p) => <PropertyCard key={p.ref} property={p} agent={agent} currency={currency} />)}
-          </div>
+      {/* Two columns with matching headings, so the first listing card and the message card start on the same line */}
+      <section className="container-site grid items-start gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
+        <div>
+          <h2 className="mb-5 font-display text-2xl leading-none">{firstName}’s listings ({listings.length})</h2>
+          {listings.length > 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {listings.map((p) => <PropertyCard key={p.ref} property={p} agent={agent} currency={currency} />)}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-line p-8 text-center text-muted">No active listings right now.</p>
+          )}
         </div>
-        <aside className="flex-[1_1_300px] lg:max-w-sm">
+        <aside className="lg:sticky lg:top-24">
+          <h2 className="mb-5 font-display text-2xl leading-none">Contact {firstName}</h2>
           <div className="rounded-xl border border-line p-5">
-            <h2 className="mb-4 font-semibold">Contact {firstName}</h2>
             <EnquiryForm agentSlug={agent.slug} source="agent_profile" />
           </div>
         </aside>
