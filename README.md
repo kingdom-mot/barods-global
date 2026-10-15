@@ -56,8 +56,9 @@ Logos in `public/brand/`.
 2. **Authentication → Sign In / Providers → Email**: turn off **Allow new users to sign up**. Accounts are invite-only.
 3. **Authentication → URL Configuration**: set **Site URL** to the live site (e.g. `https://barods-global-sable.vercel.app`, later `https://barodsglobal.com`)
    and add `https://barods-global-sable.vercel.app/**` and `http://localhost:3000/**` to **Redirect URLs**.
-4. **Authentication → Email Templates → Invite user**: make the link
-   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/portal/set-password`
+4. Email templates can stay as Supabase's defaults: the site picks up the invite/reset link wherever it lands
+   and sends the person to choose a password. (Optional, once custom SMTP is set up: point the Invite template at
+   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/portal/set-password`.)
 5. **Authentication → Users → Invite user**: invite each person by their `@barodsglobal.com` address.
    - `tunde@barodsglobal.com` becomes the owner (super admin, can't be removed).
    - Anyone whose email matches an existing agent card is linked to it; everyone else gets a new card, hidden until they add a photo and phone number.

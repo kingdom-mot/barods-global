@@ -3,6 +3,7 @@ import '@fontsource-variable/manrope';
 import '@fontsource/cormorant-garamond/600.css';
 import '@fontsource/cormorant-garamond/700.css';
 import { Suspense } from 'react';
+import AuthHashHandler from '@/components/AuthHashHandler';
 import ScrollToTop from '@/components/ScrollToTop';
 import './globals.css';
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <ScrollToTop />
         </Suspense>
+        <AuthHashHandler />
         {children}
       </body>
     </html>
