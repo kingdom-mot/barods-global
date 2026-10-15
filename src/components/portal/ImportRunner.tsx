@@ -5,9 +5,11 @@ import { useState } from 'react';
 
 type Progress = { total: number; done: number; errors: number; pending: number };
 
-async function call(step: string) {
-  const res = await fetch('/api/admin/wordpress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ step }) });
-  const body = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
+async function call(step: string, extra: Record<string, unknown> = {}) {
+  const res = await fetch('/api/admin/wordpress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ step, ...extra }) });
+  const body = await res.json().catch(() => ({
+    error: res.status === 504 ? 'That step took too long (Vercel time limit). Click the button again; finished parts are kept.' : `Server error ${res.status}`,
+  }));
   if (!res.ok || body.error) throw new Error(body.error ?? `Server error ${res.status}`);
   return body;
 }
@@ -17,13 +19,20 @@ export default function ImportRunner({ initial }: { initial: Progress | null }) 
   const [log, setLog] = useState<string[]>([]);
   const [progress, setProgress] = useState<Progress | null>(initial);
   const [running, setRunning] = useState<'' | 'all' | 'media'>('');
+  const [stage, setStage] = useState('');
   const add = (line: string) => setLog((l) => [...l, line]);
 
   async function copyImages() {
     let p: Progress | null = progress;
     // Small batches so each request finishes well inside Vercel's time limit.
     for (let i = 0; i < 400; i++) {
-      const r = await call('media');
+      let r;
+      try {
+        r = await call('media');
+      } catch (e) {
+        add(`Retrying images (${e instanceof Error ? e.message : e})…`);
+        r = await call('media');
+      }
       p = { total: r.total, done: r.done, errors: r.errors, pending: r.pending };
       setProgress(p);
       r.results.filter((x: { ok: boolean }) => !x.ok).forEach((x: { path: string; error: string }) => add(`✗ ${x.path}: ${x.error}`));
@@ -36,9 +45,26 @@ export default function ImportRunner({ initial }: { initial: Progress | null }) 
     setRunning('all');
     setLog([]);
     try {
-      add('Reading listings, agents and photos from WordPress…');
-      const r = await call('data');
-      r.log.forEach(add);
+      add('Reading agents and the list of listings from WordPress…');
+      const start = await call('start');
+      start.log.forEach(add);
+      const ids: number[] = start.ids ?? [];
+      // Two listings per request keeps each step short.
+      for (let i = 0; i < ids.length; i += 2) {
+        setStage(`Listings ${Math.min(i + 2, ids.length)} of ${ids.length}`);
+        let tries = 0;
+        for (;;) {
+          try {
+            const r = await call('listings', { ids: ids.slice(i, i + 2) });
+            r.log.forEach(add);
+            break;
+          } catch (e) {
+            if (++tries >= 3) throw e;
+            add(`Retrying (${e instanceof Error ? e.message : e})…`);
+          }
+        }
+      }
+      setStage('');
       add('Copying photos into Supabase…');
       const p = await copyImages();
       add(`Done. ${p?.done ?? 0} of ${p?.total ?? 0} images copied${p?.errors ? `, ${p.errors} failed (use “Retry failed images”)` : ''}.`);
@@ -74,6 +100,8 @@ export default function ImportRunner({ initial }: { initial: Progress | null }) 
           <div className="h-full bg-brand-green transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
+
+      {stage && <p className="text-sm font-semibold text-brand-greenDark" aria-live="polite">{stage}…</p>}
 
       <div className="flex flex-wrap gap-3">
         <button type="button" className="btn-green px-6" disabled={!!running} onClick={runAll}>

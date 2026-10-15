@@ -41,10 +41,13 @@ type WpProperty = {
 
 async function wpGet<T>(path: string): Promise<{ data: T; totalPages: number }> {
   const res = await fetch(`${WP_ORIGIN}/wp-json/wp/v2/${path}`, {
-    headers: { 'User-Agent': 'BarodsMigration/1.0 (+https://barodsglobal.com)' },
+    headers: { 'User-Agent': 'BarodsMigration/1.0 (+https://barodsglobal.com)', Accept: 'application/json' },
     cache: 'no-store',
+    signal: AbortSignal.timeout(25_000),
+  }).catch((e) => {
+    throw new Error(e?.name === 'TimeoutError' ? `WordPress took too long to answer (${path.split('?')[0]}). Try again in a minute.` : `Couldn’t reach WordPress: ${e?.message ?? e}`);
   });
-  if (!res.ok) throw new Error(`WordPress ${path} → ${res.status}`);
+  if (!res.ok) throw new Error(`WordPress ${path.split('?')[0]} answered ${res.status}`);
   return { data: (await res.json()) as T, totalPages: Number(res.headers.get('x-wp-totalpages') ?? 1) };
 }
 
@@ -179,26 +182,33 @@ function purposeFrom(statusNames: string[], priceText: string): { purpose: 'sale
 
 type Loc = { stateId: string | null; cityId: string | null; areaId: string | null };
 
-// ---------- Step 1: listings, agents and the list of images to copy ----------
-export async function importData(): Promise<{ log: string[] }> {
+// ---------- Step 1: agents, site images and the list of listings ----------
+// Called first with no ids (agents + returns every listing id), then repeatedly with a few ids at a
+// time, so no single request runs long enough to hit Vercel's time limit.
+export async function importData(opts: { ids?: number[] } = {}): Promise<{ log: string[]; ids?: number[] }> {
   const db = adminClient();
   const log: string[] = [];
+  const listingPhase = Boolean(opts.ids?.length);
+  const none = Promise.resolve([] as Term[]);
 
-  const [types, statuses, features, labels, states, cities, areas, agentsWp, props] = await Promise.all([
-    wpAll<Term>('property_type'),
-    wpAll<Term>('property_status'),
-    wpAll<Term>('property_feature'),
-    wpAll<Term>('property_label'),
-    wpAll<Term>('property_state'),
-    wpAll<Term>('property_city'),
-    wpAll<Term>('property_area'),
-    wpAll<WpAgent>('agents'),
-    wpAll<WpProperty>('properties?status=publish'),
+  const [types, statuses, features, labels, states, cities, areas, agentsWp, props, allIds] = await Promise.all([
+    listingPhase ? wpAll<Term>('property_type') : none,
+    listingPhase ? wpAll<Term>('property_status') : none,
+    listingPhase ? wpAll<Term>('property_feature') : none,
+    listingPhase ? wpAll<Term>('property_label') : none,
+    listingPhase ? wpAll<Term>('property_state') : none,
+    listingPhase ? wpAll<Term>('property_city') : none,
+    listingPhase ? wpAll<Term>('property_area') : none,
+    listingPhase ? Promise.resolve([] as WpAgent[]) : wpAll<WpAgent>('agents'),
+    listingPhase
+      ? wpGet<WpProperty[]>(`properties?status=publish&per_page=${opts.ids!.length}&include=${opts.ids!.join(',')}`).then((r) => r.data)
+      : Promise.resolve([] as WpProperty[]),
+    listingPhase ? Promise.resolve([] as { id: number }[]) : wpAll<{ id: number }>('properties?status=publish&_fields=id'),
   ]);
   const byId = (list: Term[]) => new Map(list.map((t) => [t.id, t]));
   const typeMap = byId(types), statusMap = byId(statuses), featureMap = byId(features), labelMap = byId(labels);
   const stateMap = byId(states), cityMap = byId(cities), areaMap = byId(areas);
-  log.push(`Found ${props.length} listings and ${agentsWp.length} agents on WordPress.`);
+  if (!listingPhase) log.push(`Found ${allIds.length} listings and ${agentsWp.length} agents on WordPress.`);
 
   // Every image we need, fetched in batches of 100.
   const mediaIds = new Set<number>();
@@ -236,7 +246,9 @@ export async function importData(): Promise<{ log: string[] }> {
   const amenityByName = new Map((ourAmenities ?? []).map((a) => [a.name.toLowerCase(), a.id]));
 
   // ---- Agents ----
-  const agentIdByWp = new Map<number, string>();
+  const agentIdByWp = new Map<number, string>(
+    (ourAgents ?? []).filter((x) => x.wp_id).map((x) => [Number(x.wp_id), x.id as string]),
+  );
   for (const a of agentsWp) {
     const m = a.agent_meta ?? {};
     const email = meta(m, 'fave_agent_email').toLowerCase();
@@ -282,8 +294,8 @@ export async function importData(): Promise<{ log: string[] }> {
 
   // Agents shown on the current site (Meet our team) but not set up as WordPress agents:
   // fill in any missing photo, phone or bio on their card here.
-  const { data: cards } = await db.from('agents').select('id, slug, photo_url, phone, whatsapp, bio');
-  for (const local of content.agents) {
+  const { data: cards } = listingPhase ? { data: [] } : await db.from('agents').select('id, slug, photo_url, phone, whatsapp, bio');
+  for (const local of listingPhase ? [] : content.agents) {
     const card = (cards ?? []).find((c) => c.slug === local.slug);
     if (!card) continue;
     const patch = {
@@ -447,19 +459,21 @@ export async function importData(): Promise<{ log: string[] }> {
     if (amenityIds.length) await db.from('property_amenities').insert(amenityIds.map((amenity_id) => ({ property_id: id, amenity_id })));
     saved++;
   }
-  log.push(`Imported ${saved} of ${props.length} listings.`);
+  if (listingPhase) log.push(`Saved ${saved} of ${props.length}: ${props.map((p) => tidyTitle(decodeEntities(p.title.rendered)).slice(0, 48)).join(' · ')}`);
 
   // ---- Site images used on the pages (team, partners, services, hero) ----
-  const siteImages = JSON.stringify(content).match(/\/wp-content\/uploads\/[^"'\s)]+/g) ?? [];
-  siteImages.forEach((u) => queue(u));
-  queue(`${WP_ORIGIN}/wp-content/uploads/2025/08/1-584x438.png`); // homepage hero
+  if (!listingPhase) {
+    const siteImages = JSON.stringify(content).match(/\/wp-content\/uploads\/[^"'\s)]+/g) ?? [];
+    siteImages.forEach((u) => queue(u));
+    queue(`${WP_ORIGIN}/wp-content/uploads/2025/08/1-584x438.png`); // homepage hero
+  }
 
   const rows = [...copies.entries()].map(([path, source_url]) => ({ path, source_url }));
   for (let i = 0; i < rows.length; i += 200) {
     await db.from('wp_media_copy').upsert(rows.slice(i, i + 200), { onConflict: 'path', ignoreDuplicates: true });
   }
-  log.push(`${rows.length} images queued for copying.`);
-  return { log };
+  if (rows.length) log.push(`${rows.length} images queued for copying.`);
+  return { log, ...(listingPhase ? {} : { ids: allIds.map((x) => x.id) }) };
 }
 
 // ---------- Step 2: copy images into Supabase storage, a few at a time ----------
