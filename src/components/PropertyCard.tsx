@@ -11,6 +11,15 @@ export function statusBadge(p: Property) {
   return { text: PURPOSE_LABEL[p.purpose], cls: 'bg-brand-ink text-white' };
 }
 
+function NoPhoto({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex flex-col items-center justify-center gap-2 bg-paper text-muted ${className}`}>
+      <img src="/brand/icon.png" alt="" className="h-10 w-10 opacity-30" />
+      <span className="text-xs font-semibold uppercase tracking-wide">Photos coming soon</span>
+    </div>
+  );
+}
+
 function initials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
@@ -36,7 +45,7 @@ export default function PropertyCard({
           {p.photos[0] ? (
             <img src={p.photos[0]} alt="" className="aspect-[3/2] w-full object-cover" loading="lazy" />
           ) : (
-            <div className="aspect-[3/2] w-full bg-paper" />
+            <NoPhoto className="aspect-[3/2] w-full" />
           )}
         </Link>
         <div className="absolute left-2.5 top-2.5 flex gap-1.5">

@@ -9,8 +9,7 @@ const NOTICES: Record<string, string> = {
   'no-profile': 'Your account isn’t set up yet. Ask a Barods admin to invite you.',
 };
 
-export default function LoginPage({ searchParams }: { searchParams: { next?: string; error?: string; 'signed-out'?: string } }) {
-  const next = searchParams.next?.startsWith('/portal') ? searchParams.next : '/portal';
+export default function LoginPage({ searchParams }: { searchParams: { error?: string; 'signed-out'?: string } }) {
   const notice = searchParams.error ? NOTICES[searchParams.error] : searchParams['signed-out'] ? 'You’ve signed out.' : undefined;
   return (
     <div className="flex min-h-[70vh] items-center justify-center bg-paper px-4 py-14">
@@ -18,7 +17,7 @@ export default function LoginPage({ searchParams }: { searchParams: { next?: str
         <img src="/brand/logo.png" alt="Barods Global Limited" className="mx-auto mb-6 h-16 w-auto" />
         <h1 className="mb-1 text-center font-display text-3xl">Agent sign in</h1>
         <p className="mb-6 text-center text-sm text-muted">For Barods agents and staff · @barodsglobal.com accounts only</p>
-        <LoginForm next={next} notice={notice} />
+        <LoginForm notice={notice} />
         <p className="mt-6 border-t border-line pt-4 text-center text-xs text-muted">
           Accounts are by invitation. Want to join the Barods team? <Link href="/contact-us" className="text-brand-greenDark hover:underline">Contact us</Link>.
         </p>

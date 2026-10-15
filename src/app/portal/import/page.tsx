@@ -13,7 +13,9 @@ export default async function ImportPage() {
     const { count: n, error } = await q;
     return error ? null : n ?? 0;
   };
-  const [total, done, errors] = await Promise.all([count(), count('done'), count('error')]);
+  const [total, done, errorsAll] = await Promise.all([count(), count('done'), count('error')]);
+  const { count: missing } = await supabase.from('wp_media_copy').select('path', { count: 'exact', head: true }).eq('error', 'missing on WordPress');
+  const errors = errorsAll === null ? null : errorsAll - (missing ?? 0);
   const ready = total !== null;
   const hasKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -39,7 +41,7 @@ export default async function ImportPage() {
           </ol>
         </div>
       ) : (
-        <ImportRunner initial={total ? { total, done: done ?? 0, errors: errors ?? 0, pending: total - (done ?? 0) - (errors ?? 0) } : null} />
+        <ImportRunner initial={total ? { total, done: done ?? 0, errors: errors ?? 0, missing: missing ?? 0, pending: total - (done ?? 0) - (errorsAll ?? 0) } : null} />
       )}
 
       <p className="mt-8 text-sm text-muted">

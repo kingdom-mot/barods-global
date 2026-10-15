@@ -34,7 +34,7 @@ export async function middleware(req: NextRequest) {
     if (isPortal && !user) {
       const to = req.nextUrl.clone();
       to.pathname = '/login';
-      to.search = `?next=${encodeURIComponent(req.nextUrl.pathname)}`;
+      to.search = '';
       return NextResponse.redirect(to);
     }
     if (isLogin && user) {
@@ -44,6 +44,9 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(to);
     }
   }
+
+  // Never let the browser keep portal pages: after signing out, Back can't show them again.
+  if (isPortal) res.headers.set('Cache-Control', 'private, no-store, max-age=0');
 
   if (!req.cookies.get('currency')) {
     const country = req.headers.get('x-vercel-ip-country') ?? 'NG';

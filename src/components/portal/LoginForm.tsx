@@ -6,7 +6,7 @@ import { useState } from 'react';
 import PasswordInput from '@/components/PasswordInput';
 import { BARODS_DOMAIN, createClient } from '@/lib/supabase/browser';
 
-export default function LoginForm({ next, notice }: { next: string; notice?: string }) {
+export default function LoginForm({ notice }: { notice?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,7 +31,8 @@ export default function LoginForm({ next, notice }: { next: string; notice?: str
       );
       return;
     }
-    router.replace(next);
+    // Every sign-in starts on the dashboard, never on whatever page was open last.
+    router.replace('/portal');
     router.refresh();
   }
 

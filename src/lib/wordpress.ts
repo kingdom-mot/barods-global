@@ -8,6 +8,7 @@ import * as content from './content';
 
 export const WP_ORIGIN = (process.env.WP_ORIGIN ?? 'https://barodsglobal.com').replace(/\/$/, '');
 export const MEDIA_BUCKET = 'wp-media';
+const MISSING = 'missing on WordPress';
 
 export function adminClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -484,6 +485,13 @@ export async function copyMediaBatch(limit = 8) {
   for (const item of batch ?? []) {
     try {
       const res = await fetch(item.source_url, { cache: 'no-store', headers: { 'User-Agent': 'BarodsMigration/1.0' } });
+      if (res.status === 404 || res.status === 410) {
+        // Gone from WordPress too: drop it so the listing shows "Photos coming soon" instead of a broken image.
+        const url = localUrl(item.path);
+        await db.from('property_media').delete().eq('url', url);
+        await db.from('agents').update({ photo_url: null }).eq('photo_url', url);
+        throw new Error(MISSING);
+      }
       if (!res.ok) throw new Error(`download ${res.status}`);
       const body = await res.arrayBuffer();
       const { error } = await db.storage.from(MEDIA_BUCKET).upload(item.path, body, {
@@ -504,17 +512,19 @@ export async function copyMediaBatch(limit = 8) {
 }
 
 export async function mediaProgress(db = adminClient()) {
-  const count = async (status?: string) => {
+  const count = async (status?: string, missing?: boolean) => {
     let q = db.from('wp_media_copy').select('path', { count: 'exact', head: true });
     if (status) q = q.eq('status', status);
+    if (missing !== undefined) q = missing ? q.eq('error', MISSING) : q.or(`error.is.null,error.neq.${MISSING}`);
     return (await q).count ?? 0;
   };
-  const [total, done, errors] = await Promise.all([count(), count('done'), count('error')]);
-  return { total, done, errors, pending: total - done - errors };
+  const [total, done, missing, errors] = await Promise.all([count(), count('done'), count('error', true), count('error', false)]);
+  return { total, done, missing, errors, pending: total - done - missing - errors };
 }
 
 export async function retryFailed() {
   const db = adminClient();
+  // Retry real failures, and re-check missing ones once so their listings get cleaned up.
   await db.from('wp_media_copy').update({ status: 'pending', error: null }).eq('status', 'error');
   return mediaProgress(db);
 }

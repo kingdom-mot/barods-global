@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+function NoPhoto({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex flex-col items-center justify-center gap-2 bg-paper text-muted ${className}`}>
+      <img src="/brand/icon.png" alt="" className="h-14 w-14 opacity-30" />
+      <span className="text-sm font-semibold uppercase tracking-wide">Photos coming soon</span>
+    </div>
+  );
+}
+
 /** Houzez-style gallery: large photo + thumbnails, a Map tab, and a full-screen viewer. */
 export default function PropertyGallery({ photos, title, mapQuery }: { photos: string[]; title: string; mapQuery: string }) {
   const [tab, setTab] = useState<'gallery' | 'map'>('gallery');
@@ -40,7 +49,7 @@ export default function PropertyGallery({ photos, title, mapQuery }: { photos: s
   return (
     <div>
       <div className="mb-3 flex gap-2" role="tablist" aria-label="Media">
-        {tabBtn('gallery', `Gallery (${count})`)}
+        {tabBtn('gallery', count ? `Gallery (${count})` : 'Gallery')}
         {tabBtn('map', 'Map')}
       </div>
 
@@ -63,9 +72,13 @@ export default function PropertyGallery({ photos, title, mapQuery }: { photos: s
             <button type="button" onClick={() => setOpen(0)} className="btn-outline bg-white sm:hidden">View all {count} photos</button>
           </div>
         ) : (
-          <button type="button" onClick={() => count && setOpen(0)} className="block w-full">
-            <img src={photos[0]} alt={title} className="aspect-[4/3] w-full rounded-xl object-cover sm:aspect-auto sm:h-[480px]" />
-          </button>
+          count === 1 ? (
+            <button type="button" onClick={() => setOpen(0)} className="block w-full">
+              <img src={photos[0]} alt={title} className="aspect-[4/3] w-full rounded-xl object-cover sm:aspect-auto sm:h-[480px]" />
+            </button>
+          ) : (
+            <NoPhoto className="aspect-[4/3] w-full rounded-xl sm:aspect-auto sm:h-[480px]" />
+          )
         )
       ) : (
         <div className="overflow-hidden rounded-xl border border-line">

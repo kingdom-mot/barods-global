@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-type Progress = { total: number; done: number; errors: number; pending: number };
+type Progress = { total: number; done: number; errors: number; pending: number; missing?: number };
 
 async function call(step: string, extra: Record<string, unknown> = {}) {
   const res = await fetch('/api/admin/wordpress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ step, ...extra }) });
@@ -33,9 +33,11 @@ export default function ImportRunner({ initial }: { initial: Progress | null }) 
         add(`Retrying images (${e instanceof Error ? e.message : e})…`);
         r = await call('media');
       }
-      p = { total: r.total, done: r.done, errors: r.errors, pending: r.pending };
+      p = { total: r.total, done: r.done, errors: r.errors, pending: r.pending, missing: r.missing };
       setProgress(p);
-      r.results.filter((x: { ok: boolean }) => !x.ok).forEach((x: { path: string; error: string }) => add(`✗ ${x.path}: ${x.error}`));
+      r.results
+        .filter((x: { ok: boolean }) => !x.ok)
+        .forEach((x: { path: string; error: string }) => add(x.error === 'missing on WordPress' ? `– ${x.path.split('/').pop()}: no longer on WordPress, removed from its listing` : `✗ ${x.path}: ${x.error}`));
       if (!r.pending || r.results.length === 0) break;
     }
     return p;
@@ -67,7 +69,7 @@ export default function ImportRunner({ initial }: { initial: Progress | null }) 
       setStage('');
       add('Copying photos into Supabase…');
       const p = await copyImages();
-      add(`Done. ${p?.done ?? 0} of ${p?.total ?? 0} images copied${p?.errors ? `, ${p.errors} failed (use “Retry failed images”)` : ''}.`);
+      add(`Done. ${p?.done ?? 0} of ${p?.total ?? 0} images copied${p?.missing ? `, ${p.missing} no longer on WordPress` : ''}${p?.errors ? `, ${p.errors} failed (use “Retry failed images”)` : ''}.`);
       router.refresh();
     } catch (e) {
       add(`Stopped: ${e instanceof Error ? e.message : String(e)}`);
@@ -87,14 +89,14 @@ export default function ImportRunner({ initial }: { initial: Progress | null }) 
     setRunning('');
   }
 
-  const pct = progress?.total ? Math.round((progress.done / progress.total) * 100) : 0;
+  const pct = progress?.total ? Math.round(((progress.done + (progress.missing ?? 0)) / progress.total) * 100) : 0;
 
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-line bg-white p-5">
         <div className="mb-2 flex items-baseline justify-between text-sm">
           <span className="font-semibold">Images copied to Supabase</span>
-          <span className="text-muted">{progress ? `${progress.done} of ${progress.total}${progress.errors ? ` · ${progress.errors} failed` : ''}` : 'Not started'}</span>
+          <span className="text-muted">{progress ? `${progress.done} of ${progress.total}${progress.missing ? ` · ${progress.missing} not on WordPress` : ''}${progress.errors ? ` · ${progress.errors} failed` : ''}` : 'Not started'}</span>
         </div>
         <div className="h-3 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full bg-brand-green transition-all" style={{ width: `${pct}%` }} />
