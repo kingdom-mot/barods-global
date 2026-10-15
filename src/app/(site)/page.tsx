@@ -25,9 +25,8 @@ export default async function HomePage() {
           alt=""
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        {/* Brand overlay: charcoal into Barods green, so the photo reads through but text stays legible */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-ink/90 via-brand-ink/65 to-brand-greenDark/80" />
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-1.5 bg-brand-green" />
+        {/* Charcoal overlay so the photo shows through and the text stays easy to read */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-ink/75 via-brand-ink/55 to-brand-ink/80" />
         <div className="container-site py-20 text-center sm:py-28">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-brand-green">Real Estate and Construction</p>
           <h1 className="font-display text-4xl text-white sm:text-6xl">Welcome To Barods Global Limited</h1>

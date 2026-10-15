@@ -10,6 +10,7 @@ const SOURCE: Record<string, string> = {
   agent_profile: 'Via your profile',
   contact: 'Contact page',
   service: 'Service enquiry',
+  visitor_signup: 'Website visitor · asked to be kept updated',
 };
 
 export default async function LeadsPage({ searchParams }: { searchParams: { status?: string } }) {
