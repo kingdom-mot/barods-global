@@ -77,3 +77,40 @@ export async function sendLeadEmail(l: LeadEmail): Promise<{ sent: boolean; reas
     return { sent: false, reason: e instanceof Error ? e.message : String(e) };
   }
 }
+
+/** Branded invite / password-reset email with a one-time sign-in link. */
+export async function sendInviteEmail(i: { to: string; name: string; link: string; kind: 'invite' | 'recovery'; invitedBy: string }): Promise<{ sent: boolean; reason?: string }> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { sent: false, reason: 'RESEND_API_KEY not set' };
+  const first = esc(i.name.split(' ')[0] ?? i.name);
+  const invite = i.kind === 'invite';
+  const subject = invite ? 'You’re invited to the Barods Global agent portal' : 'Set a new password for the Barods Global portal';
+  const html = `<!doctype html><html><body style="margin:0;background:#F6F7F5;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:520px;margin:0 auto;padding:24px">
+    <div style="background:#231F20;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;font-weight:bold">Barods Global · Agent portal</div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 10px 10px;border:1px solid #E3E6EA;border-top:0;color:#231F20;font-size:15px;line-height:1.5">
+      <p style="margin:0 0 12px">Hello ${first},</p>
+      ${
+        invite
+          ? `<p style="margin:0 0 12px">${esc(i.invitedBy)} has invited you to the Barods Global agent portal, where you can add listings, see your enquiries and update your profile.</p>`
+          : `<p style="margin:0 0 12px">Use the button below to choose a new password for your Barods Global portal account.</p>`
+      }
+      <p style="margin:20px 0"><a href="${esc(i.link)}" style="display:inline-block;background:#56B91E;color:#fff;padding:12px 22px;border-radius:6px;text-decoration:none;font-weight:bold">${invite ? 'Accept invite and set password' : 'Set a new password'}</a></p>
+      <p style="margin:0 0 12px;color:#5B6168;font-size:13px">The link works once and expires after an hour. If it has expired, ask an admin to send a new one.</p>
+      <p style="margin:0;color:#5B6168;font-size:13px">Didn’t expect this email? You can ignore it.</p>
+    </div>
+  </div></body></html>`;
+  const text = `${invite ? `${i.invitedBy} has invited you to the Barods Global agent portal.` : 'Set a new password for your Barods Global portal account.'}\n\n${i.link}\n\nThe link works once and expires after an hour.`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM.replace('Website', 'Portal'), to: [i.to], subject, html, text }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { sent: false, reason: `Resend ${res.status}: ${(await res.text()).slice(0, 200)}` };
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}

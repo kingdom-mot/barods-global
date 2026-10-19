@@ -12,6 +12,7 @@ const FILTERS = [
   ['pending_review', 'Awaiting approval'],
   ['draft', 'Drafts'],
   ['sent_back', 'Sent back'],
+  ['archived', 'Archived'],
 ] as const;
 
 const SAVED_MSG = {
@@ -25,7 +26,7 @@ export default async function ListingsPage({ searchParams }: { searchParams: { s
   const supabase = createClient();
   let q = supabase
     .from('properties')
-    .select('id, ref, slug, title, purpose, status, availability, price, currency, price_on_application, updated_at, review_note, agent_id, agents(full_name), property_media(url, sort, kind)')
+    .select('id, ref, slug, title, purpose, status, availability, featured, label, price, currency, price_on_application, updated_at, review_note, agent_id, agents(full_name), property_media(url, sort, kind)')
     .order('updated_at', { ascending: false })
     .limit(300);
   if (!me.isStaff) q = q.eq('agent_id', me.agent?.id ?? '00000000-0000-0000-0000-000000000000');
@@ -98,7 +99,7 @@ export default async function ListingsPage({ searchParams }: { searchParams: { s
                   {r.status === 'sent_back' && r.review_note && <p className="mt-1 text-sm text-red-800">Admin note: {r.review_note}</p>}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <ListingRowActions id={r.id} status={r.status} availability={r.availability} purpose={r.purpose} />
+                  <ListingRowActions id={r.id} status={r.status} availability={r.availability} purpose={r.purpose} isStaff={me.isStaff} featured={r.featured} label={r.label} />
                   {r.status === 'published' && (
                     <Link href={`/property/${r.slug}`} target="_blank" className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold hover:border-brand-green">View live</Link>
                   )}
