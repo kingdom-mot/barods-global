@@ -1,6 +1,42 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/data';
-import { FALLBACK_LEAD_EMAIL, sendLeadEmail } from '@/lib/email';
+import { FALLBACK_LEAD_EMAIL, sendLeadEmail, sendNotice, SITE } from '@/lib/email';
+import { adminClient } from '@/lib/supabase/admin';
+
+// Best-effort per-server-instance limit; the database check below is the real one.
+const recentByIp = new Map<string, number[]>();
+function tooManyFromIp(ip: string) {
+  const now = Date.now();
+  const list = (recentByIp.get(ip) ?? []).filter((t) => now - t < 10 * 60_000);
+  list.push(now);
+  recentByIp.set(ip, list);
+  if (recentByIp.size > 5000) recentByIp.clear();
+  return list.length > 8;
+}
+
+/** Staff copied on every lead (Website → Settings). Defaults to the owner. */
+async function leadRecipients(): Promise<string[]> {
+  try {
+    const { data } = await adminClient().from('site_settings').select('value').eq('key', 'lead_recipients').maybeSingle();
+    const list = Array.isArray(data?.value) ? (data!.value as string[]) : [];
+    return list.length ? list : ['tunde@barodsglobal.com'];
+  } catch {
+    return ['tunde@barodsglobal.com'];
+  }
+}
+
+/** Same phone or email more than 3 times in 10 minutes looks like a bot or a stuck button. */
+async function repeatedSender(phone: string, email: string) {
+  try {
+    const since = new Date(Date.now() - 10 * 60_000).toISOString();
+    const ors = [phone && `phone.eq.${phone.replace(/[,()]/g, '')}`, email && `email.eq.${email.replace(/[,()]/g, '')}`].filter(Boolean).join(',');
+    if (!ors) return false;
+    const { count } = await adminClient().from('leads').select('id', { count: 'exact', head: true }).gte('created_at', since).or(ors);
+    return (count ?? 0) >= 3;
+  } catch {
+    return false;
+  }
+}
 
 const SOURCES = ['property_enquiry', 'viewing_request', 'contact', 'agent_profile', 'service', 'visitor_signup'];
 const KIND: Record<string, string> = {
@@ -32,6 +68,15 @@ export async function POST(req: Request) {
   }
   if (email && !EMAIL_RE.test(email)) return NextResponse.json({ error: 'That email address doesn’t look right' }, { status: 400 });
 
+  // Spam checks: a hidden field only bots fill in, forms sent faster than a person can type, and floods.
+  if ((typeof b?.hp === 'string' && b.hp.trim()) || (typeof b?.t === 'number' && b.t < 2500)) {
+    return NextResponse.json({ ok: true, stored: false }); // look successful so bots move on
+  }
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
+  if (tooManyFromIp(ip) || (await repeatedSender(phone, email))) {
+    return NextResponse.json({ error: 'You’ve sent several messages in a short time. Please wait a few minutes, or call us.' }, { status: 429 });
+  }
+
   if (!supabase) {
     // No database configured yet (preview build): accept so the form can be demonstrated.
     console.log('[lead]', { name, source, property: b?.propertyRef });
@@ -51,6 +96,13 @@ export async function POST(req: Request) {
       message: `Asked to be kept updated (agreed to follow-up)${page ? ` · signed up on ${page}` : ''}`,
     });
     if (error) return NextResponse.json({ error: 'Could not save' }, { status: 500 });
+    await sendNotice({
+      to: await leadRecipients(),
+      subject: `New website sign-up: ${name}`,
+      heading: 'Website sign-up',
+      lines: [`${name} (${email}) asked to be kept updated about new properties.`, page ? `They signed up on ${SITE}${page}.` : ''].filter(Boolean),
+      button: { label: 'Open leads in the portal', href: `${SITE}/portal/leads` },
+    });
     return NextResponse.json({ ok: true, stored: true });
   }
 
@@ -89,6 +141,7 @@ export async function POST(req: Request) {
 
   const mail = await sendLeadEmail({
     to: agent?.email || FALLBACK_LEAD_EMAIL,
+    cc: await leadRecipients(),
     agentName: agent?.full_name,
     kind: KIND[source] ?? 'Enquiry',
     visitor: { name, phone, email: email || null, message },

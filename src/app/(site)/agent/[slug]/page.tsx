@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
 import PropertyCard from '@/components/PropertyCard';
 import { getAgent, getAgentProperties, getProperty } from '@/lib/data';
+import { loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 type Props = { params: { slug: string }; searchParams: { from?: string } };
@@ -17,6 +18,7 @@ export default async function AgentPage({ params, searchParams }: Props) {
   const agent = await getAgent(params.slug);
   if (!agent) notFound();
   const currency = getVisitorCurrency();
+  await loadRates();
   const listings = await getAgentProperties(agent.slug);
   // Arrived from a listing? Only real property slugs are accepted, so this can't link off-site.
   const fromProperty = searchParams.from ? await getProperty(searchParams.from) : undefined;

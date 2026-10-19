@@ -8,10 +8,46 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 export const FALLBACK_LEAD_EMAIL = process.env.LEAD_FALLBACK_EMAIL ?? 'support@barodsglobal.com';
 const FROM = process.env.LEAD_FROM_EMAIL ?? 'Barods Global Website <leads@barodsglobal.com>';
-const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://barodsglobal.com').replace(/\/$/, '');
+// Links in emails point at wherever the site is live: the Vercel address now, barodsglobal.com after the move.
+export const SITE = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'https://barodsglobal.com')
+).replace(/\/$/, '');
+
+/** Copies, without repeating the main recipient or each other. */
+function ccList(to: string, cc: string[] = []) {
+  return [...new Set(cc.map((e) => e.trim().toLowerCase()).filter((e) => e && e !== to.toLowerCase()))];
+}
+
+/** Simple branded notice (listing submitted, approved, sent back…). */
+export async function sendNotice(n: { to: string[]; subject: string; heading: string; lines: string[]; button?: { label: string; href: string } }): Promise<{ sent: boolean; reason?: string }> {
+  const key = process.env.RESEND_API_KEY;
+  const to = [...new Set(n.to.filter(Boolean).map((e) => e.toLowerCase()))];
+  if (!key || !to.length) return { sent: false, reason: key ? 'no recipients' : 'RESEND_API_KEY not set' };
+  const html = `<!doctype html><html><body style="margin:0;background:#F6F7F5;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:520px;margin:0 auto;padding:24px">
+    <div style="background:#231F20;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;font-weight:bold">Barods Global · ${esc(n.heading)}</div>
+    <div style="background:#fff;padding:22px;border-radius:0 0 10px 10px;border:1px solid #E3E6EA;border-top:0;color:#231F20;font-size:15px;line-height:1.55">
+      ${n.lines.map((l) => `<p style="margin:0 0 12px">${esc(l)}</p>`).join('')}
+      ${n.button ? `<p style="margin:18px 0 0"><a href="${esc(n.button.href)}" style="display:inline-block;background:#56B91E;color:#fff;padding:11px 20px;border-radius:6px;text-decoration:none;font-weight:bold">${esc(n.button.label)}</a></p>` : ''}
+    </div>
+  </div></body></html>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM.replace('Website', 'Portal'), to, subject: n.subject, html, text: [...n.lines, n.button ? `${n.button.label}: ${n.button.href}` : ''].join('\n\n') }),
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.ok ? { sent: true } : { sent: false, reason: `Resend ${res.status}` };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
 
 export type LeadEmail = {
   to: string;
+  cc?: string[];
   agentName?: string;
   visitor: { name: string; phone?: string | null; email?: string | null; message?: string | null };
   kind: string; // "Property enquiry", "Tour request", …
@@ -68,7 +104,15 @@ export async function sendLeadEmail(l: LeadEmail): Promise<{ sent: boolean; reas
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: [l.to], subject, html, text, ...(l.visitor.email ? { reply_to: l.visitor.email } : {}) }),
+      body: JSON.stringify({
+        from: FROM,
+        to: [l.to],
+        ...(ccList(l.to, l.cc).length ? { cc: ccList(l.to, l.cc) } : {}),
+        subject,
+        html,
+        text,
+        ...(l.visitor.email ? { reply_to: l.visitor.email } : {}),
+      }),
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { sent: false, reason: `Resend ${res.status}: ${(await res.text()).slice(0, 200)}` };

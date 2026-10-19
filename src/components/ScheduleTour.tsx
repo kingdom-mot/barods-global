@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { HoneyPot, useFormTimer } from './spam';
 
 const TIMES = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
 
@@ -27,6 +28,8 @@ export default function ScheduleTour({ propertyRef, agentSlug, title }: { proper
   const [day, setDay] = useState(0);
   const [type, setType] = useState<'In person' | 'Video chat'>('In person');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const elapsed = useFormTimer();
+  const [error, setError] = useState('');
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,8 +53,11 @@ export default function ScheduleTour({ propertyRef, agentSlug, title }: { proper
         viewingAt: when.toISOString(),
         propertyRef,
         agentSlug,
+        hp: f.get('hp'),
+        t: elapsed(),
       }),
     });
+    if (!res.ok) setError((await res.json().catch(() => ({}))).error ?? '');
     setState(res.ok ? 'sent' : 'error');
   }
 
@@ -64,7 +70,8 @@ export default function ScheduleTour({ propertyRef, agentSlug, title }: { proper
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="relative space-y-4">
+      <HoneyPot />
       <fieldset>
         <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Tour type</legend>
         <div className="flex gap-2">
@@ -119,7 +126,7 @@ export default function ScheduleTour({ propertyRef, agentSlug, title }: { proper
       <button type="submit" className="btn-green w-full sm:w-auto" disabled={state === 'sending'}>
         {state === 'sending' ? 'Sending…' : 'Submit a tour request'}
       </button>
-      {state === 'error' && <p className="text-sm text-red-700" role="alert">Something went wrong. Please call the agent instead.</p>}
+      {state === 'error' && <p className="text-sm text-red-700" role="alert">{error || 'Something went wrong. Please call the agent instead.'}</p>}
     </form>
   );
 }

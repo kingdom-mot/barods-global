@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
-import { getAgents, searchProperties } from '@/lib/data';
+import { featureOptions, getAgents, searchProperties, selectedFeatures } from '@/lib/data';
 import type { SearchParams } from '@/lib/types';
+import { loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 export const metadata: Metadata = {
@@ -15,13 +16,17 @@ const PURPOSE_TITLE: Record<string, string> = { sale: 'for sale', rent: 'for ren
 
 export default async function PropertiesPage({ searchParams }: { searchParams: SearchParams }) {
   const currency = getVisitorCurrency();
-  const [results, agents] = await Promise.all([searchProperties(searchParams), getAgents()]);
+  await loadRates();
+  const [results, agents, features] = await Promise.all([searchProperties(searchParams), getAgents(), featureOptions()]);
+  const ticked = selectedFeatures(searchParams);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
   const baseHeading = searchParams.purpose ? `Properties ${PURPOSE_TITLE[searchParams.purpose] ?? ''}` : 'All properties';
   const heading = searchParams.location?.trim() ? `${baseHeading} in ${searchParams.location.trim().replace(/\b\w/g, (c) => c.toUpperCase())}` : baseHeading;
 
   const sortLink = (sort: string) => {
-    const q = new URLSearchParams(searchParams as Record<string, string>);
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams)) if (typeof v === 'string' && v) q.set(k, v);
+    if (ticked.length) q.set('features', ticked.join(','));
     q.set('sort', sort);
     return `/properties?${q.toString()}`;
   };
@@ -66,6 +71,20 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
                 <option value="sold">Sold / Let only</option>
               </select>
             </label>
+            {features.length > 0 && (
+              <fieldset className="min-w-0">
+                <legend className="label mb-2">Features</legend>
+                <div className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1">
+                  {features.map((f) => (
+                    <label key={f.slug} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="features" value={f.slug} defaultChecked={ticked.includes(f.slug)} className="h-4 w-4 shrink-0 accent-brand-green" />
+                      <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                      <span className="text-xs text-muted">{f.count}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             <label className="label">
               Keywords or ref
               <input name="q" defaultValue={searchParams.q ?? ''} placeholder="e.g. BG-10231" className="field" />

@@ -1,7 +1,11 @@
 import Link from 'next/link';
-import { contact } from '@/lib/content';
+import { getContact, getSocials } from '@/lib/settings';
 
-export default function Footer() {
+const SOCIAL_LABEL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube', tiktok: 'TikTok' } as const;
+
+export default async function Footer() {
+  const [contact, socials] = await Promise.all([getContact(), getSocials()]);
+  const socialLinks = (Object.keys(SOCIAL_LABEL) as (keyof typeof SOCIAL_LABEL)[]).filter((k) => socials[k]);
   return (
     <footer className="bg-brand-ink text-white/80">
       <div className="container-site grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -32,9 +36,20 @@ export default function Footer() {
           <h3 className="mb-4 font-semibold text-white">Contact us</h3>
           <ul className="space-y-2 text-sm">
             <li>{contact.address}</li>
-            <li><a href={contact.phoneHref} className="hover:text-brand-green">{contact.phone}</a></li>
+            <li><a href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`} className="hover:text-brand-green">{contact.phone}</a></li>
             <li><a href={`mailto:${contact.email}`} className="hover:text-brand-green">{contact.email}</a></li>
           </ul>
+          {socialLinks.length > 0 && (
+            <ul className="mt-4 flex flex-wrap gap-2 text-xs">
+              {socialLinks.map((k) => (
+                <li key={k}>
+                  <a href={socials[k]} target="_blank" rel="noopener noreferrer" className="inline-block rounded-full border border-white/20 px-3 py-1.5 hover:border-brand-green hover:text-brand-green">
+                    {SOCIAL_LABEL[k]}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
       <div className="border-t border-white/10">

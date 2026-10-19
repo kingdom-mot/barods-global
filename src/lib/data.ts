@@ -166,6 +166,30 @@ function typeMatches(slug: string, filter: string) {
   return slug === f || (TYPE_GROUPS[f]?.includes(slug) ?? false);
 }
 
+const featureSlug = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+/** Selected feature slugs from the URL, however they were sent. */
+export function selectedFeatures(s: SearchParams): string[] {
+  const raw = Array.isArray(s.features) ? s.features : s.features ? [s.features] : [];
+  return [...new Set(raw.flatMap((v) => v.split(',')).map((v) => v.trim()).filter(Boolean))];
+}
+
+/** The features listed most often on live listings, for the search filters. */
+export async function featureOptions(limit = 12): Promise<{ slug: string; name: string; count: number }[]> {
+  const counts = new Map<string, { slug: string; name: string; count: number }>();
+  for (const p of await allProperties()) {
+    if (p.availability === 'sold' || p.availability === 'let') continue;
+    for (const name of new Set(p.amenities ?? [])) {
+      const slug = featureSlug(name);
+      if (!slug) continue;
+      const c = counts.get(slug) ?? { slug, name, count: 0 };
+      c.count++;
+      counts.set(slug, c);
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, limit);
+}
+
 export async function searchProperties(s: SearchParams): Promise<Property[]> {
   let list = await allProperties();
   const num = (v?: string) => (v ? Number(v) : undefined);
@@ -204,6 +228,14 @@ export async function searchProperties(s: SearchParams): Promise<Property[]> {
   if (min) list = list.filter((p) => (p.price ?? 0) >= min);
   const max = num(s.maxPrice);
   if (max) list = list.filter((p) => p.price !== null && p.price <= max);
+  const wanted = selectedFeatures(s);
+  if (wanted.length) {
+    // Listings must have every ticked feature.
+    list = list.filter((p) => {
+      const has = new Set((p.amenities ?? []).map(featureSlug));
+      return wanted.every((f) => has.has(f));
+    });
+  }
   if (s.q) {
     const q = s.q.toLowerCase();
     list = list.filter((p) =>

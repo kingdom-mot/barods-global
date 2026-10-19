@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { HoneyPot, useFormTimer } from './spam';
 
 export default function EnquiryForm({
   propertyRef,
@@ -18,6 +19,8 @@ export default function EnquiryForm({
   askRole?: boolean;
 }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const elapsed = useFormTimer();
+  const [error, setError] = useState('');
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,8 +35,11 @@ export default function EnquiryForm({
       source: form.get('viewing') ? 'viewing_request' : source,
       propertyRef,
       agentSlug,
+      hp: form.get('hp'),
+      t: elapsed(),
     };
     const res = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) setError((await res.json().catch(() => ({}))).error ?? '');
     setState(res.ok ? 'sent' : 'error');
   }
 
@@ -46,7 +52,8 @@ export default function EnquiryForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+    <form onSubmit={onSubmit} className="relative flex flex-col gap-3">
+      <HoneyPot />
       <label className="label">Full name<input name="name" required className="field" autoComplete="name" /></label>
       <label className="label">Phone / WhatsApp<input name="phone" type="tel" required className="field" autoComplete="tel" /></label>
       <label className="label">Email (optional)<input name="email" type="email" className="field" autoComplete="email" /></label>
@@ -70,7 +77,7 @@ export default function EnquiryForm({
       <button type="submit" className="btn-green" disabled={state === 'sending'}>
         {state === 'sending' ? 'Sending…' : 'Send enquiry'}
       </button>
-      {state === 'error' && <p className="text-sm text-red-700" role="alert">Something went wrong. Please call us instead.</p>}
+      {state === 'error' && <p className="text-sm text-red-700" role="alert">{error || 'Something went wrong. Please call us instead.'}</p>}
     </form>
   );
 }

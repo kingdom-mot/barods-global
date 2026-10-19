@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CURRENCIES, type CurrencyCode } from '@/lib/currency';
+import { CURRENCIES, perNgn, type CurrencyCode } from '@/lib/currency';
 import {
   COUNTRY_RULES,
-  SCHEMES,
   defaultSchemeFor,
+  withSettings,
+  type MortgageOverrides,
   monthlyRepayment,
   zaTransferDuty,
   type CostField,
@@ -18,9 +19,10 @@ function money(n: number, code: MoneyCode | CurrencyCode) {
   return `${symbol}${Math.round(n).toLocaleString('en-NG')}`;
 }
 
+let RATES: Record<string, number> = {};
 function convert(amount: number, from: MoneyCode | CurrencyCode, to: MoneyCode | CurrencyCode) {
   if (from === to) return amount;
-  return (amount / CURRENCIES[from].perNgn) * CURRENCIES[to].perNgn;
+  return (amount / perNgn(from, RATES)) * perNgn(to, RATES);
 }
 
 /** Text box that shows thousands separators but stores a plain number. */
@@ -50,13 +52,19 @@ export default function MortgageCalculator({
   country,
   visitorCurrency,
   isLand,
+  settings,
+  rates = {},
 }: {
   price: number;
   currency: MoneyCode;
   country: 'NG' | 'ZA';
   visitorCurrency: CurrencyCode;
   isLand: boolean;
+  settings?: MortgageOverrides;
+  rates?: Record<string, number>;
 }) {
+  RATES = rates;
+  const SCHEMES = useMemo(() => withSettings(settings), [settings]);
   const [countryCode, setCountryCode] = useState<'NG' | 'ZA' | 'OTHER'>(country);
   const [schemeId, setSchemeId] = useState<SchemeId>(defaultSchemeFor(country));
   const scheme = SCHEMES[schemeId];

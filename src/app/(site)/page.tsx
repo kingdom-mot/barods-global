@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
-import { cities, partners, team } from '@/lib/content';
+import { cities } from '@/lib/content';
 import { getAgents, getCityCounts, getFeatured } from '@/lib/data';
+import { getHero, getPartners, getTeam, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 const reviews = [
@@ -13,7 +14,15 @@ const reviews = [
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts] = await Promise.all([getFeatured(6), getAgents(), getCityCounts()]);
+  const [featured, agents, counts, hero, team, partners] = await Promise.all([
+    getFeatured(6),
+    getAgents(),
+    getCityCounts(),
+    getHero(),
+    getTeam('home'),
+    getPartners(),
+    loadRates(),
+  ]);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
 
   return (
@@ -21,18 +30,17 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-brand-ink">
         <img
-          src="/wp-content/uploads/2025/08/1-584x438.png"
+          src={hero.image}
           alt=""
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
         {/* Charcoal overlay so the photo shows through and the text stays easy to read */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-ink/75 via-brand-ink/55 to-brand-ink/80" />
         <div className="container-site py-20 text-center sm:py-28">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-brand-green">Real Estate and Construction</p>
-          <h1 className="font-display text-4xl text-white sm:text-6xl">Welcome To Barods Global Limited</h1>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-brand-green">{hero.eyebrow}</p>
+          <h1 className="font-display text-4xl text-white sm:text-6xl">{hero.title}</h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-white/85 sm:text-lg">
-            Whether you’re buying your first home, selling property, investing in real estate, or building from the ground
-            up, Barods is your trusted partner for excellence, innovation, and lasting value.
+            {hero.subtitle}
           </p>
           <div className="mx-auto mt-10 max-w-5xl">
             <SearchForm />
@@ -110,13 +118,19 @@ export default async function HomePage() {
           aria-label="Partner logos"
         >
           <ul className="marquee-track flex w-max gap-6">
-            {[...partners, ...partners].map((src, i) => (
+            {[...partners, ...partners].map((p, i) => (
               <li
                 key={i}
                 aria-hidden={i >= partners.length}
                 className="flex h-28 w-48 shrink-0 items-center justify-center rounded-xl border border-line bg-white p-4 shadow-sm"
               >
-                <img src={src} alt={i < partners.length ? 'Partner logo' : ''} className="max-h-20 w-auto object-contain" loading="lazy" />
+                {p.link ? (
+                  <a href={p.link} target="_blank" rel="noopener noreferrer" tabIndex={i >= partners.length ? -1 : undefined}>
+                    <img src={p.logo} alt={i < partners.length ? p.name : ''} className="max-h-20 w-auto object-contain" loading="lazy" />
+                  </a>
+                ) : (
+                  <img src={p.logo} alt={i < partners.length ? p.name : ''} className="max-h-20 w-auto object-contain" loading="lazy" />
+                )}
               </li>
             ))}
           </ul>

@@ -80,4 +80,6 @@ export interface SearchParams {
   furnishing?: string;
   status?: string;
   sort?: string;
+  /** Feature slugs, comma-separated or repeated (?features=pool&features=gym). */
+  features?: string | string[];
 }

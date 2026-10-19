@@ -11,6 +11,22 @@ export const CURRENCIES = {
 
 export type CurrencyCode = keyof typeof CURRENCIES;
 
+// Live rates (units per ₦1) loaded from the database each day; the numbers above are the fallback.
+let LIVE: Partial<Record<CurrencyCode, number>> = {};
+export function applyRates(r: Record<string, number>) {
+  const next: Partial<Record<CurrencyCode, number>> = {};
+  for (const [k, v] of Object.entries(r)) if (isCurrencyKey(k) && Number.isFinite(v) && v > 0) next[k] = v;
+  LIVE = { ...LIVE, ...next };
+}
+function isCurrencyKey(k: string): k is CurrencyCode {
+  return k in CURRENCIES;
+}
+/** Units of `code` per ₦1, using today's rate when known. */
+export function perNgn(code: CurrencyCode, rates?: Partial<Record<string, number>>): number {
+  if (code === 'NGN') return 1;
+  return rates?.[code] ?? LIVE[code] ?? CURRENCIES[code].perNgn;
+}
+
 export const COUNTRY_TO_CURRENCY: Record<string, CurrencyCode> = {
   NG: 'NGN', ZA: 'ZAR', US: 'USD', GB: 'GBP', CA: 'CAD',
   DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', NL: 'EUR', IE: 'EUR', BE: 'EUR', PT: 'EUR', AT: 'EUR', FI: 'EUR',
@@ -38,7 +54,7 @@ export function formatPrice(
   if (price === null) return { main: 'POA' };
   const suffix = PERIOD[period] ?? '';
   if (visitor === listingCurrency) return { main: fmt(price, visitor) + suffix };
-  const inNgn = price / CURRENCIES[listingCurrency].perNgn;
-  const converted = inNgn * CURRENCIES[visitor].perNgn;
+  const inNgn = price / perNgn(listingCurrency);
+  const converted = inNgn * perNgn(visitor);
   return { main: `≈ ${fmt(Math.round(converted), visitor)}${suffix}`, original: fmt(price, listingCurrency) + suffix };
 }

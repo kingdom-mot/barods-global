@@ -1,21 +1,18 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
-import { services } from '@/lib/content';
+import { renderMarkdown } from '@/lib/markdown';
+import { getServices } from '@/lib/settings';
 
 type Props = { params: { slug: string } };
 
-export function generateStaticParams() {
-  return services.map((s) => ({ slug: s.slug }));
-}
-
-export function generateMetadata({ params }: Props): Metadata {
-  const s = services.find((x) => x.slug === params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const s = (await getServices()).find((x) => x.slug === params.slug);
   return s ? { title: s.name, description: s.summary } : {};
 }
 
-export default function ServicePage({ params }: Props) {
-  const s = services.find((x) => x.slug === params.slug);
+export default async function ServicePage({ params }: Props) {
+  const s = (await getServices()).find((x) => x.slug === params.slug);
   if (!s) notFound();
   return (
     <div className="container-site py-14">
@@ -26,6 +23,7 @@ export default function ServicePage({ params }: Props) {
         <div className="min-w-0">
           <img src={s.image} alt="" className="aspect-[4/3] w-full rounded-xl object-cover" />
           <p className="mt-6 text-[17px] leading-relaxed">{s.summary}</p>
+          {s.body && <div className="article mt-6" dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body) }} />}
         </div>
         <aside className="rounded-xl border border-line p-5 lg:sticky lg:top-24">
           <h2 className="mb-4 font-semibold">Enquire about {s.name.toLowerCase()}</h2>

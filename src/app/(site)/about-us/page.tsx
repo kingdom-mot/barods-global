@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { services, team } from '@/lib/content';
+import { getServices, getTeam } from '@/lib/settings';
 
 export const metadata: Metadata = { title: 'About Us' };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const [team, services] = await Promise.all([getTeam('about'), getServices()]);
   return (
     <>
       <section className="bg-brand-ink py-16 text-white">

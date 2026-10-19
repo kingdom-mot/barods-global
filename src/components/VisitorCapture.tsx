@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { readConsent } from './CookieConsent';
+import { HoneyPot, useFormTimer } from './spam';
 
 const KEY = 'barods_visitor_prompt';
 const ASK_AGAIN_DAYS = 30;
@@ -40,6 +41,7 @@ export default function VisitorCapture() {
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
   const armed = useRef(false);
+  const elapsed = useFormTimer();
 
   useEffect(() => {
     if (pathname.startsWith('/login') || pathname.startsWith('/portal')) return;
@@ -89,7 +91,7 @@ export default function VisitorCapture() {
     const res = await fetch('/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source: 'visitor_signup', name: f.get('name'), email: f.get('email'), consent: f.get('consent') === 'on', page: pathname }),
+      body: JSON.stringify({ source: 'visitor_signup', name: f.get('name'), email: f.get('email'), consent: f.get('consent') === 'on', page: pathname, hp: f.get('hp'), t: elapsed() }),
     });
     if (res.ok) {
       setState('done');
@@ -117,7 +119,8 @@ export default function VisitorCapture() {
         {state === 'done' ? (
           <p className="p-6 text-sm font-semibold text-brand-greenDark" role="status">Thank you! We’ll be in touch with properties that match what you’re looking for.</p>
         ) : (
-          <form onSubmit={onSubmit} className="space-y-3 p-6">
+          <form onSubmit={onSubmit} className="relative space-y-3 p-6">
+            <HoneyPot />
             <label className="label">Your name<input name="name" className="field" autoComplete="name" required maxLength={120} /></label>
             <label className="label">Email address<input name="email" type="email" className="field" autoComplete="email" required maxLength={160} /></label>
             <label className="flex items-start gap-2 text-xs text-muted">

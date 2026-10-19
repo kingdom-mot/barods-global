@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { services } from '@/lib/content';
+import { getServices } from '@/lib/settings';
 
 export const metadata: Metadata = { title: 'Our Services' };
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+  const services = await getServices();
   return (
     <div className="container-site py-14">
       <div className="mb-12 text-center">

@@ -176,3 +176,39 @@ export function monthlyRepayment(principal: number, annualRatePct: number, years
 export function defaultSchemeFor(country: 'NG' | 'ZA'): SchemeId {
   return country === 'ZA' ? 'za-bond' : 'ng-commercial';
 }
+
+/** Apply the rates edited in the admin portal (Website → Settings) to the schemes above. */
+export type MortgageOverrides = {
+  ng_commercial_rate?: number;
+  ng_commercial_min_deposit?: number;
+  ng_commercial_max_term?: number;
+  nhf_rate?: number;
+  nhf_max_loan?: number;
+  nhf_max_term?: number;
+  za_prime_rate?: number;
+};
+export function withSettings(o: MortgageOverrides = {}): Record<SchemeId, Scheme> {
+  const n = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d);
+  const c = SCHEMES['ng-commercial'], nhf = SCHEMES['ng-nhf'], za = SCHEMES['za-bond'];
+  const cMin = n(o.ng_commercial_min_deposit, c.minDepositPct);
+  const cMax = n(o.ng_commercial_max_term, c.maxTermYears);
+  const nhfMax = n(o.nhf_max_term, nhf.maxTermYears);
+  const nhfLoan = n(o.nhf_max_loan, nhf.maxLoan ?? 0);
+  return {
+    ...SCHEMES,
+    'ng-commercial': { ...c, rate: n(o.ng_commercial_rate, c.rate), minDepositPct: cMin, depositPct: Math.max(c.depositPct, cMin), maxTermYears: cMax, termYears: Math.min(c.termYears, cMax) },
+    'ng-nhf': {
+      ...nhf,
+      rate: n(o.nhf_rate, nhf.rate),
+      maxLoan: nhfLoan,
+      maxTermYears: nhfMax,
+      termYears: Math.min(nhf.termYears, nhfMax),
+      notes: [nhf.notes[0], `The loan is capped at ₦${nhfLoan.toLocaleString('en-NG')} and must be repaid before age 60. Confirm current limits with FMBN.`],
+    },
+    'za-bond': {
+      ...za,
+      rate: n(o.za_prime_rate, za.rate),
+      notes: [`Prime is ${n(o.za_prime_rate, za.rate)}% (South African Reserve Bank). Your rate depends on your credit profile.`, za.notes[1]],
+    },
+  };
+}

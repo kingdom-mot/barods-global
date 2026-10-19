@@ -19,6 +19,9 @@ export default function SearchForm({ values = {}, variant = 'hero' }: { values?:
   const purpose = values.purpose ?? 'sale';
   return (
     <form action="/properties" method="get" className={variant === 'hero' ? 'rounded-xl bg-white p-4 text-left shadow-xl sm:p-5' : ''}>
+      {/* keep ticked features and status when the top bar search changes */}
+      {variant === 'bar' && values.features && <input type="hidden" name="features" value={([] as string[]).concat(values.features).join(',')} />}
+      {variant === 'bar' && values.status && <input type="hidden" name="status" value={values.status} />}
       <fieldset className="mb-4 flex gap-2">
         <legend className="sr-only">Purpose</legend>
         {[

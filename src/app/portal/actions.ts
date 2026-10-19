@@ -2,6 +2,25 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, requireStaff, requireUser } from '@/lib/supabase/server';
+import { sendNotice, SITE } from '@/lib/email';
+import { adminClient } from '@/lib/supabase/admin';
+
+/** Emails about listings never block the save: failures are logged and skipped. */
+async function staffEmails(): Promise<string[]> {
+  try {
+    const { data } = await adminClient().from('profiles').select('email').in('role', ['admin', 'super_admin']);
+    return (data ?? []).map((r) => r.email).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+async function quietly(p: Promise<unknown>) {
+  try {
+    await p;
+  } catch (e) {
+    console.warn('[listing email]', e);
+  }
+}
 
 export type ListingInput = {
   id?: string;
@@ -160,6 +179,22 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
     await supabase.from('property_amenities').insert(input.amenityIds.map((amenity_id) => ({ property_id: id, amenity_id })));
   }
 
+  if (intent === 'submit') {
+    await quietly(
+      (async () => {
+        const to = await staffEmails();
+        if (!to.length) return;
+        await sendNotice({
+          to,
+          subject: `Listing to review: ${input.title.trim()}`,
+          heading: 'A listing is waiting for approval',
+          lines: [`${me.agent?.fullName ?? me.fullName ?? 'An agent'} sent “${input.title.trim()}”${ref ? ` (${ref})` : ''} for review.`, 'Approve it to put it on the website, or send it back with a note.'],
+          button: { label: 'Review listings', href: `${SITE}/portal/approvals` },
+        });
+      })(),
+    );
+  }
+
   revalidatePath('/portal', 'layout');
   return { ok: true, id: id!, ref };
 }
@@ -186,6 +221,33 @@ export async function reviewListing(id: string, decision: 'approve' | 'send_back
       ? { status: 'published', published_at: new Date().toISOString(), review_note: null }
       : { status: 'sent_back', review_note: note.trim().slice(0, 1000) || 'Please review and update this listing.' };
   const { error } = await supabase.from('properties').update(update).eq('id', id);
+  if (!error) {
+    await quietly(
+      (async () => {
+        const { data: p } = await adminClient().from('properties').select('title, ref, slug, agents(full_name, email)').eq('id', id).maybeSingle();
+        const agent = p?.agents as unknown as { full_name: string; email: string | null } | null;
+        if (!p || !agent?.email) return;
+        const first = agent.full_name.split(' ')[0];
+        await sendNotice(
+          decision === 'approve'
+            ? {
+                to: [agent.email],
+                subject: `Your listing is live: ${p.title}`,
+                heading: 'Your listing has been approved',
+                lines: [`Hi ${first},`, `“${p.title}”${p.ref ? ` (${p.ref})` : ''} is now live on the Barods Global website.`],
+                button: { label: 'View the listing', href: `${SITE}/property/${p.slug}` },
+              }
+            : {
+                to: [agent.email],
+                subject: `Changes needed: ${p.title}`,
+                heading: 'Your listing needs a few changes',
+                lines: [`Hi ${first},`, `“${p.title}” was sent back with this note:`, String(update.review_note), 'Make the changes and send it for review again.'],
+                button: { label: 'Edit the listing', href: `${SITE}/portal/listings/${id}` },
+              },
+        );
+      })(),
+    );
+  }
   revalidatePath('/portal', 'layout');
   return error ? { ok: false as const, error: 'Couldn’t update this listing.' } : { ok: true as const };
 }

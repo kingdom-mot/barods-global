@@ -10,6 +10,7 @@ import ShareBar from '@/components/ShareBar';
 import { SpecIcon } from '@/components/SpecIcons';
 import { formatPrice } from '@/lib/currency';
 import { getAgent, getAgents, getProperty, getPropertyByWpSlug, searchProperties } from '@/lib/data';
+import { getContact, getMortgageSettings, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 type Props = { params: { slug: string } };
@@ -49,6 +50,7 @@ export default async function PropertyPage({ params }: Props) {
     notFound();
   }
   const currency = getVisitorCurrency();
+  const [rates, mortgageSettings, contact] = await Promise.all([loadRates(), getMortgageSettings(), getContact()]);
   const [agent, agents, similarAll] = await Promise.all([
     getAgent(p.agentSlug),
     getAgents(),
@@ -63,7 +65,7 @@ export default async function PropertyPage({ params }: Props) {
     .join(', ');
   const mapQuery = [p.address ?? p.area, p.city, p.state, COUNTRY[p.countryCode]].filter(Boolean).join(', ');
   const whatsappText = encodeURIComponent(`Hello, I'm interested in ${p.title} (${p.ref}) on barodsglobal.com`);
-  const whatsappNumber = (agent?.whatsapp ?? '+2348022288806').replace(/[^0-9]/g, '');
+  const whatsappNumber = (agent?.whatsapp ?? contact.whatsapp).replace(/[^0-9]/g, '');
   const isLand = /land|plot/i.test(p.typeName);
   const sizeSqm = p.floorSizeSqm ?? (p.landSize ? Number(p.landSize.replace(/[^0-9.]/g, '')) || undefined : undefined);
   const perSqm = p.price && sizeSqm && p.purpose === 'sale' ? formatPrice(Math.round(p.price / sizeSqm), p.currency, 'once', currency) : null;
@@ -282,7 +284,7 @@ export default async function PropertyPage({ params }: Props) {
 
           {showMortgage && (
             <Block id="mortgage" title="Mortgage calculator">
-              <MortgageCalculator price={p.price!} currency={p.currency} country={p.countryCode} visitorCurrency={currency} isLand={isLand} />
+              <MortgageCalculator price={p.price!} currency={p.currency} country={p.countryCode} visitorCurrency={currency} isLand={isLand} settings={mortgageSettings} rates={rates} />
             </Block>
           )}
 
@@ -319,7 +321,7 @@ export default async function PropertyPage({ params }: Props) {
               </div>
             )}
             <div className="mb-5 grid grid-cols-2 gap-2">
-              <a href={agent?.phone ? `tel:${agent.phone}` : 'tel:+2348022288806'} className="btn-outline">Call</a>
+              <a href={`tel:${(agent?.phone ?? contact.phone).replace(/[^0-9+]/g, '')}`} className="btn-outline">Call</a>
               <a
                 href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`}
                 target="_blank"
