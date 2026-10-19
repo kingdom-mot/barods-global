@@ -66,3 +66,26 @@
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation-duration: 120s; }
 }
+
+/* Blog article typography */
+.article {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  color: #2b2829;
+}
+.article > * + * { margin-top: 1.15em; }
+.article h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2rem; line-height: 1.2; font-weight: 700; margin-top: 1.8em; color: #231f20; }
+.article h3 { font-size: 1.2rem; font-weight: 700; margin-top: 1.6em; color: #231f20; }
+.article a { color: #3d7f16; text-decoration: underline; text-underline-offset: 3px; }
+.article a:hover { color: #56b91e; }
+.article strong { color: #231f20; }
+.article ul, .article ol { padding-left: 1.4em; }
+.article ul { list-style: disc; }
+.article ol { list-style: decimal; }
+.article li + li { margin-top: 0.4em; }
+.article li::marker { color: #56b91e; font-weight: 700; }
+.article blockquote { border-left: 4px solid #56b91e; background: #eef8e7; padding: 0.9em 1.2em; border-radius: 0 0.75rem 0.75rem 0; font-style: italic; }
+.article img { border-radius: 1rem; width: 100%; }
+.article hr { border-color: #e3e6ea; margin: 2.2em 0; }
+.article table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+.article th, .article td { border-bottom: 1px solid #e3e6ea; padding: 0.6em 0.4em; text-align: left; }

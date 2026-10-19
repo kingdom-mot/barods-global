@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 
-// Old WordPress blog posts were the theme's demo articles; they go to the homepage.
+// Old WordPress blog posts were the theme's demo articles; they go to the new blog.
 const OLD_POSTS = [
-  'blog', 'insights', 'real-estate-industry-and-competitors', 'understand-the-real-estate-market',
+  'real-estate-industry-and-competitors', 'understand-the-real-estate-market',
   'the-ultimate-cheat-sheet-on-real-estate', 'the-history-of-real-estate', '15-best-blogs-to-follow-about-real-estate',
   '10-quick-tips-about-real-estate', 'why-we-love-real-estate', '10-things-your-competitors-can-teach-you-about-real-estate',
   '14-common-misconceptions-about-business-development', '10-quick-tips-about-business-development',
@@ -61,7 +61,9 @@ const nextConfig = {
       ...OLD_ACCOUNT_PAGES.map((p) => r(`/${p}`, '/login')),
       r('/wp-admin/:path*', '/login'),
       r('/wp-login.php', '/login'),
-      ...OLD_POSTS.map((p) => r(`/${p}`, '/')),
+      // Old demo posts and the old blog index now land on the new blog.
+      r('/insights', '/blog'),
+      ...OLD_POSTS.map((p) => r(`/${p}`, p === 'home-2' ? '/' : '/blog')),
       r('/category/:path*', '/'),
       r('/tag/:path*', '/'),
       r('/author/:path*', '/'),
