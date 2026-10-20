@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
+import LegalPage from '@/components/LegalPage';
+import { termsOfUse } from '@/lib/legal';
 
-export const metadata: Metadata = { title: 'Terms of Use' };
+export const metadata: Metadata = {
+  title: 'Terms of Use',
+  description: 'The rules for using the Barods Global Limited website, property listings, enquiry forms and agent portal.',
+};
 
 export default function TermsPage() {
-  return (
-    <div className="container-site max-w-3xl py-14">
-      <h1 className="section-title">Terms of Use</h1>
-      <p className="mt-4 text-muted">[Barods Global to supply the terms of use text — editable from the admin portal.]</p>
-    </div>
-  );
+  return <LegalPage doc={termsOfUse} />;
 }
