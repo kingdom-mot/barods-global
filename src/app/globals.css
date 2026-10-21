@@ -12,6 +12,14 @@
   a {
     @apply transition-colors;
   }
+  /* Cormorant draws old-style numbers by default (a 1 looks like an I); use standard digits everywhere */
+  .font-display,
+  h1,
+  h2,
+  h3 {
+    font-variant-numeric: lining-nums;
+    font-feature-settings: 'lnum' 1;
+  }
 }
 
 @layer components {
