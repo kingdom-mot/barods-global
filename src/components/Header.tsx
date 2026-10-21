@@ -42,9 +42,6 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
 
         <div className="ml-auto hidden items-center gap-4 lg:flex">
           <CurrencySwitcher current={currency} />
-          <Link href="/login" className="btn-green">
-            Agent Login
-          </Link>
         </div>
 
         <button
@@ -68,11 +65,8 @@ export default function Header({ currency }: { currency: CurrencyCode }) {
                 {n.label}
               </Link>
             ))}
-            <div className="flex items-center justify-between gap-4 py-3">
+            <div className="py-3">
               <CurrencySwitcher current={currency} />
-              <Link href="/login" className="btn-green" onClick={() => setOpen(false)}>
-                Agent Login
-              </Link>
             </div>
           </nav>
         </div>
