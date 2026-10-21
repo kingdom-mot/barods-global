@@ -10,6 +10,8 @@ export interface Agent {
   whatsapp?: string;
   photoUrl?: string;
   bio?: string;
+  /** Areas they cover, e.g. "Lagos, Abeokuta, Ibadan". */
+  serviceAreas?: string;
   verified: boolean;
 }
 

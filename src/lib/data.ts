@@ -74,6 +74,7 @@ function mapAgent(r: any): Agent {
     whatsapp: r.whatsapp ?? undefined,
     photoUrl: r.photo_url ?? undefined,
     bio: r.bio ?? undefined,
+    serviceAreas: r.service_areas ?? undefined,
     verified: r.verified,
   };
 }

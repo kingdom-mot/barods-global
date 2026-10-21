@@ -17,7 +17,7 @@ export default async function ProfilePage() {
       </p>
       <ProfileForm
         userId={me.id}
-        initial={{ fullName: a.fullName, position: a.position ?? '', phone: a.phone ?? '', whatsapp: a.whatsapp ?? '', bio: a.bio ?? '', photoUrl: a.photoUrl }}
+        initial={{ fullName: a.fullName, position: a.position ?? '', phone: a.phone ?? '', whatsapp: a.whatsapp ?? '', bio: a.bio ?? '', serviceAreas: a.serviceAreas ?? '', photoUrl: a.photoUrl }}
       />
     </div>
   );

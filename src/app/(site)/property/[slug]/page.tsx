@@ -1,3 +1,4 @@
+import { waNumber } from '@/lib/phone';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -65,7 +66,7 @@ export default async function PropertyPage({ params }: Props) {
     .join(', ');
   const mapQuery = [p.address ?? p.area, p.city, p.state, COUNTRY[p.countryCode]].filter(Boolean).join(', ');
   const whatsappText = encodeURIComponent(`Hello, I'm interested in ${p.title} (${p.ref}) on barodsglobal.com`);
-  const whatsappNumber = (agent?.whatsapp ?? contact.whatsapp).replace(/[^0-9]/g, '');
+  const whatsappNumber = waNumber(agent?.whatsapp || agent?.phone || contact.whatsapp);
   const isLand = /land|plot/i.test(p.typeName);
   const sizeSqm = p.floorSizeSqm ?? (p.landSize ? Number(p.landSize.replace(/[^0-9.]/g, '')) || undefined : undefined);
   const perSqm = p.price && sizeSqm && p.purpose === 'sale' ? formatPrice(Math.round(p.price / sizeSqm), p.currency, 'once', currency) : null;

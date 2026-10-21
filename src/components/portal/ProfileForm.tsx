@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import { updateProfile } from '@/app/portal/actions';
 import { createClient } from '@/lib/supabase/browser';
 
-type Initial = { fullName: string; position: string; phone: string; whatsapp: string; bio: string; photoUrl: string | null };
+type Initial = { fullName: string; position: string; phone: string; whatsapp: string; bio: string; serviceAreas: string; photoUrl: string | null };
 
 export default function ProfileForm({ userId, initial }: { userId: string; initial: Initial }) {
   const router = useRouter();
@@ -55,6 +55,11 @@ export default function ProfileForm({ userId, initial }: { userId: string; initi
         <label className="label">Phone<input className="field" type="tel" value={v.phone} onChange={set('phone')} placeholder="0803 000 0000" required /></label>
         <label className="label">WhatsApp number<input className="field" type="tel" value={v.whatsapp} onChange={set('whatsapp')} placeholder="Same as phone if blank" /></label>
       </div>
+      <label className="label">
+        Areas you cover
+        <input className="field" value={v.serviceAreas} onChange={set('serviceAreas')} placeholder="e.g. Lagos, Abeokuta, Ibadan" maxLength={200} />
+        <span className="mt-1 block text-xs font-normal text-muted">Separate with commas. Shown on your public profile.</span>
+      </label>
       <label className="label">Short bio<textarea className="field" rows={4} value={v.bio} onChange={set('bio')} placeholder="The areas you cover and how you help buyers and tenants." maxLength={1200} /></label>
       {msg && <p className={`rounded-lg p-3 text-sm ${msg.ok ? 'bg-brand-greenLight text-brand-greenDark' : 'bg-red-50 text-red-800'}`} role="status">{msg.text}</p>}
       <button type="submit" className="btn-green px-8" disabled={pending || uploading}>{pending ? 'Saving…' : 'Save profile'}</button>

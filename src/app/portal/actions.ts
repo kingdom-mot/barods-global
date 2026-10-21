@@ -264,13 +264,11 @@ export async function updateLead(id: string, status: string, note: string) {
   return { ok: !error };
 }
 
-export async function updateProfile(input: { fullName: string; position: string; phone: string; whatsapp: string; bio: string; photoUrl: string | null }) {
+export async function updateProfile(input: { fullName: string; position: string; phone: string; whatsapp: string; bio: string; serviceAreas: string; photoUrl: string | null }) {
   const me = await requireUser();
   if (!me.agent) return { ok: false as const, error: 'No agent card is linked to your account.' };
   const complete = Boolean(input.fullName.trim() && input.phone.trim() && input.photoUrl);
-  const { error } = await createClient()
-    .from('agents')
-    .update({
+  const row = {
       full_name: input.fullName.trim().slice(0, 120),
       position: input.position.trim().slice(0, 120) || null,
       phone: input.phone.trim().slice(0, 40) || null,
@@ -279,8 +277,11 @@ export async function updateProfile(input: { fullName: string; position: string;
       photo_url: input.photoUrl,
       // A completed card goes live on the Agents page.
       ...(me.agent.status === 'invited' && complete ? { status: 'active' } : {}),
-    })
-    .eq('id', me.agent.id);
+  };
+  const areas = input.serviceAreas.split(',').map((a) => a.trim()).filter(Boolean).join(', ').slice(0, 200) || null;
+  let { error } = await createClient().from('agents').update({ ...row, service_areas: areas }).eq('id', me.agent.id);
+  // Before migration 0008 the column doesn't exist yet: save everything else.
+  if (error?.message.includes('service_areas')) ({ error } = await createClient().from('agents').update(row).eq('id', me.agent.id));
   revalidatePath('/portal', 'layout');
   return error ? { ok: false as const, error: 'Couldn’t save your profile.' } : { ok: true as const, activated: me.agent.status === 'invited' && complete };
 }

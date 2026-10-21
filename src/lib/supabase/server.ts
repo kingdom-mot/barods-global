@@ -40,6 +40,7 @@ export interface PortalUser {
     whatsapp: string | null;
     photoUrl: string | null;
     bio: string | null;
+    serviceAreas: string | null;
     status: 'active' | 'invited' | 'suspended';
   } | null;
 }
@@ -56,7 +57,7 @@ export const requireUser = cache(async (): Promise<PortalUser> => {
     supabase.from('profiles').select('full_name, email, role, is_owner').eq('id', user.id).maybeSingle(),
     supabase
       .from('agents')
-      .select('id, slug, full_name, position, phone, whatsapp, photo_url, bio, status')
+      .select('*') // all columns, so a newly added one never breaks sign-in
       .eq('profile_id', user.id)
       .maybeSingle(),
   ]);
@@ -79,6 +80,7 @@ export const requireUser = cache(async (): Promise<PortalUser> => {
           whatsapp: agent.whatsapp,
           photoUrl: agent.photo_url,
           bio: agent.bio,
+          serviceAreas: agent.service_areas ?? null,
           status: agent.status,
         }
       : null,
