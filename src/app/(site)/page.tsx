@@ -1,20 +1,17 @@
 import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
+import GoogleReviews from '@/components/GoogleReviews';
 import { formatDate, getPosts } from '@/lib/blog';
+import { getGoogleReviews, WRITE_REVIEW_URL } from '@/lib/reviews';
 import { getAgents, getCityCounts, getFeatured } from '@/lib/data';
 import { citySlug, getHero, getHomeCities, getPartners, getTeam, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
-const reviews = [
-  { name: 'Adekola Alagbe', stars: 4, text: 'Great people, no gimmicks. What you see is what you get.' },
-  { name: 'Kehinde Opemipo', stars: 5, text: 'Hands down the best real estate company in Abeokuta you could ask for.' },
-  { name: 'Yetunde Junaid', stars: 5, text: 'One of the best Real Estate company in Abeokuta, Ogun State.' },
-];
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts, hero, team, partners, , allPosts, cities] = await Promise.all([
+  const [featured, agents, counts, hero, team, partners, , allPosts, cities, reviews] = await Promise.all([
     getFeatured(6),
     getAgents(),
     getCityCounts(),
@@ -24,6 +21,7 @@ export default async function HomePage() {
     loadRates(),
     getPosts(),
     getHomeCities(),
+    getGoogleReviews(),
   ]);
   // Newest posts first; four across on desktop, like the old homepage.
   const posts = allPosts.slice(0, 4);
@@ -153,32 +151,7 @@ export default async function HomePage() {
       {/* Reviews */}
       <section className="bg-paper py-16 sm:py-20">
         <div className="container-site">
-          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="section-title">What Our Clients Say</h2>
-              <p className="section-sub">From our Google reviews</p>
-            </div>
-            <a
-              href="https://search.google.com/local/writereview?placeid=ChIJX3Gh7dpLOhARZ02Vmo30ODc"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-outline"
-            >
-              Write a review
-            </a>
-          </div>
-          <div className="grid gap-5 md:grid-cols-3">
-            {reviews.map((r) => (
-              <figure key={r.name} className="rounded-xl border border-line bg-white p-6">
-                <div className="text-brand-orange" aria-label={`${r.stars} out of 5 stars`}>
-                  {'★'.repeat(r.stars)}
-                  <span className="text-line">{'★'.repeat(5 - r.stars)}</span>
-                </div>
-                <blockquote className="mt-3 text-[15px]">“{r.text}”</blockquote>
-                <figcaption className="mt-4 text-sm font-semibold">{r.name}</figcaption>
-              </figure>
-            ))}
-          </div>
+          <GoogleReviews data={reviews} writeUrl={WRITE_REVIEW_URL} />
         </div>
       </section>
 
