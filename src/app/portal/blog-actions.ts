@@ -1,5 +1,6 @@
 'use server';
 
+import { pingIndexNow } from '@/lib/indexnow';
 import { revalidatePath } from 'next/cache';
 import { createClient, requirePerm } from '@/lib/supabase/server';
 
@@ -76,6 +77,7 @@ export async function savePost(input: PostInput): Promise<{ ok: true; id: string
   revalidatePath('/blog');
   revalidatePath(`/blog/${res.data.slug}`);
   revalidatePath('/portal/blog');
+  if (status === 'published') await pingIndexNow([`/blog/${res.data.slug}`, '/blog']);
   return { ok: true, id: res.data.id, slug: res.data.slug };
 }
 

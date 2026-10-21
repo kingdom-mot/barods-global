@@ -1,5 +1,6 @@
 import { waNumber } from '@/lib/phone';
 import type { Metadata } from 'next';
+import JsonLd from '@/components/JsonLd';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
@@ -21,8 +22,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!p) return {};
   return {
     title: p.title,
-    description: p.description ?? `${p.typeName} in ${p.city}, ${p.state}`,
-    openGraph: { images: p.photos.slice(0, 1) },
+    description: (p.description ?? `${p.typeName} in ${p.city}, ${p.state}`).slice(0, 300),
+    alternates: { canonical: `/property/${p.slug}` },
+    openGraph: { type: 'website', title: p.title, images: p.photos.slice(0, 1) },
   };
 }
 
@@ -126,8 +128,25 @@ export default async function PropertyPage({ params }: Props) {
     { label: 'Title', value: p.titleDocument?.match(/\(([^)]+)\)/)?.[1] ?? p.titleDocument },
   ];
 
+  const listingLd = {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateListing',
+    name: p.title,
+    url: `https://barodsglobal.com/property/${p.slug}`,
+    description: p.description?.slice(0, 500),
+    image: p.photos.slice(0, 5).map((u) => (u.startsWith('http') ? u : `https://barodsglobal.com${u}`)),
+    datePosted: p.publishedAt,
+    identifier: p.ref,
+    provider: { '@id': 'https://barodsglobal.com/#organization' },
+    contentLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: p.area ?? p.city, addressRegion: p.state, addressCountry: p.countryCode } },
+    ...(p.price
+      ? { offers: { '@type': 'Offer', price: p.price, priceCurrency: p.currency, availability: p.availability === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut' } }
+      : {}),
+  };
+
   return (
     <div className="bg-paper pb-16">
+      <JsonLd data={listingLd} />
       <div className="container-site pt-6">
         <nav className="mb-4 text-sm text-muted" aria-label="Breadcrumb">
           <Link href="/" className="hover:text-brand-green">Home</Link> ›{' '}

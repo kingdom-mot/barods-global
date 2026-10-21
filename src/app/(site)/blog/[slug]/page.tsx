@@ -1,3 +1,4 @@
+import JsonLd from '@/components/JsonLd';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -13,6 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: p.title,
     description: p.excerpt ?? undefined,
+    alternates: { canonical: `/blog/${p.slug}` },
     openGraph: { type: 'article', title: p.title, description: p.excerpt ?? undefined, images: p.coverUrl ? [p.coverUrl] : undefined, publishedTime: p.publishedAt },
   };
 }
@@ -26,6 +28,19 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <article>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: post.title,
+          description: post.excerpt ?? undefined,
+          image: post.coverUrl ?? undefined,
+          datePublished: post.publishedAt,
+          author: { '@type': 'Person', name: post.author ?? 'Barods Global' },
+          publisher: { '@id': 'https://barodsglobal.com/#organization' },
+          mainEntityOfPage: `https://barodsglobal.com/blog/${post.slug}`,
+        }}
+      />
       <header className="container-site max-w-4xl pb-8 pt-10 text-center sm:pt-14">
         <nav className="mb-6 text-sm text-muted" aria-label="Breadcrumb">
           <Link href="/" className="hover:text-brand-green">Home</Link> › <Link href="/blog" className="hover:text-brand-green">Blog</Link>

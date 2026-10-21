@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, requirePerm, requireUser } from '@/lib/supabase/server';
 import { sendNotice, SITE } from '@/lib/email';
+import { pingIndexNow } from '@/lib/indexnow';
 import { adminClient } from '@/lib/supabase/admin';
 
 /** Emails about listings never block the save: failures are logged and skipped. */
@@ -152,19 +153,22 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
 
   let id = input.id;
   let ref = '';
+  let slug = '';
   if (id) {
-    const { data, error } = await supabase.from('properties').update(row).eq('id', id).select('id, ref').maybeSingle();
+    const { data, error } = await supabase.from('properties').update(row).eq('id', id).select('id, ref, slug').maybeSingle();
     if (error || !data) return { ok: false, error: 'Couldn’t save this listing. It may have been removed, or you may not have access.' };
     ref = data.ref;
+    slug = data.slug;
   } else {
     const { data, error } = await supabase
       .from('properties')
       .insert({ ...row, agent_id: me.can.listings ? input.agentId || me.agent?.id || null : me.agent!.id })
-      .select('id, ref')
+      .select('id, ref, slug')
       .single();
     if (error || !data) return { ok: false, error: 'Couldn’t save this listing. Please try again.' };
     id = data.id;
     ref = data.ref;
+    slug = data.slug;
   }
 
   // Photos (first = cover) and features are replaced as a set.
@@ -178,6 +182,8 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
   if (input.amenityIds.length) {
     await supabase.from('property_amenities').insert(input.amenityIds.map((amenity_id) => ({ property_id: id, amenity_id })));
   }
+
+  if (intent === 'publish' && slug) await pingIndexNow([`/property/${slug}`, '/properties']);
 
   if (intent === 'submit') {
     await quietly(
@@ -225,6 +231,7 @@ export async function reviewListing(id: string, decision: 'approve' | 'send_back
     await quietly(
       (async () => {
         const { data: p } = await adminClient().from('properties').select('title, ref, slug, agents(full_name, email)').eq('id', id).maybeSingle();
+        if (p && decision === 'approve') await pingIndexNow([`/property/${p.slug}`, '/properties']);
         const agent = p?.agents as unknown as { full_name: string; email: string | null } | null;
         if (!p || !agent?.email) return;
         const first = agent.full_name.split(' ')[0];

@@ -45,6 +45,10 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Only barodsglobal.com goes in search results; the temporary vercel.app address stays out of them.
+  const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').replace(/^www\./, '').split(':')[0];
+  if (host !== 'barodsglobal.com' || isPortal || isLogin) res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+
   // Never let the browser keep portal pages: after signing out, Back can't show them again.
   if (isPortal) res.headers.set('Cache-Control', 'private, no-store, max-age=0');
 

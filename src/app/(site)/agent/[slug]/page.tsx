@@ -13,7 +13,7 @@ type Props = { params: { slug: string }; searchParams: { from?: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const a = await getAgent(params.slug);
-  return a ? { title: `${a.fullName}${a.position ? ` — ${a.position}` : ''}`, description: a.bio?.slice(0, 160) } : {};
+  return a ? { title: `${a.fullName}${a.position ? ` — ${a.position}` : ''}`, description: a.bio?.slice(0, 160), alternates: { canonical: `/agent/${a.slug}` } } : {};
 }
 
 const PURPOSE_LABEL: Record<string, string> = { sale: 'For Sale', rent: 'For Rent', shortlet: 'Shortlet' };

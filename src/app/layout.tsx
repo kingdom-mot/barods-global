@@ -4,6 +4,7 @@ import '@fontsource/cormorant-garamond/600.css';
 import '@fontsource/cormorant-garamond/700.css';
 import { Suspense } from 'react';
 import AuthHashHandler from '@/components/AuthHashHandler';
+import ReloadReset from '@/components/ReloadReset';
 import ScrollToTop from '@/components/ScrollToTop';
 import './globals.css';
 
@@ -19,6 +20,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <ReloadReset />
+      </head>
       <body>
         <Suspense fallback={null}>
           <ScrollToTop />
