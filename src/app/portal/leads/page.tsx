@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import LeadRow, { LEAD_STATUS } from '@/components/portal/LeadRow';
+import LeadRow from '@/components/portal/LeadRow';
+import { LEAD_STATUS } from '@/lib/leads';
 import { createClient, requireUser } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Leads' };

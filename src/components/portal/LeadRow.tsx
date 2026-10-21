@@ -2,15 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { updateLead } from '@/app/portal/actions';
+import { LEAD_STATUS } from '@/lib/leads';
 
-export const LEAD_STATUS: [string, string][] = [
-  ['new', 'New'],
-  ['contacted', 'Contacted'],
-  ['viewing_booked', 'Viewing booked'],
-  ['offer_made', 'Offer made'],
-  ['closed_won', 'Closed: won'],
-  ['closed_lost', 'Closed: lost'],
-];
 
 export default function LeadRow({ id, status, note }: { id: string; status: string; note: string | null }) {
   const [s, setS] = useState(status);
