@@ -355,9 +355,63 @@ export function ServicesEditor({ rows, userId }: { rows: ServiceRow[]; userId: s
   );
 }
 
+// ---------- Homepage cities ----------
+type HomeCity = { name: string; state: string; image: string };
+/** The city cards on the homepage: photo, name, state. Each card opens the properties in that city. */
+export function HomeCitiesEditor({ userId, initial }: { userId: string; initial: HomeCity[] }) {
+  const [rows, setRows] = useState<HomeCity[]>(initial);
+  const { msg, pending, run } = useAction();
+  const set = (i: number, patch: Partial<HomeCity>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const move = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    setRows(next);
+  };
+  return (
+    <section className="mb-8 rounded-xl border border-line bg-white p-5">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Homepage cities</h2>
+          <p className="text-sm text-muted">The “Explore Our Properties by City” cards. Upload a photo for each; the card opens that city’s listings.</p>
+        </div>
+        <button type="button" className="btn-outline min-h-[38px] px-4 text-sm" disabled={rows.length >= 12} onClick={() => setRows([...rows, { name: '', state: '', image: '' }])}>
+          + Add city
+        </button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {rows.map((c, i) => (
+          <div key={i} className="space-y-2 rounded-lg border border-line p-3">
+            <ImageField userId={userId} label="Photo" value={c.image} onChange={(url) => set(i, { image: url })} aspect="aspect-[4/3]" />
+            <label className="label">City<input className="field" value={c.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="e.g. Abeokuta" /></label>
+            <label className="label">State<input className="field" value={c.state} onChange={(e) => set(i, { state: e.target.value })} placeholder="e.g. Ogun" /></label>
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="flex gap-1">
+                <button type="button" className="rounded px-2 py-1 hover:bg-paper" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">←</button>
+                <button type="button" className="rounded px-2 py-1 hover:bg-paper" disabled={i === rows.length - 1} onClick={() => move(i, 1)} aria-label="Move later">→</button>
+              </span>
+              <span className="flex gap-1">
+                {c.image && <button type="button" className="rounded px-2 py-1 hover:bg-paper" onClick={() => set(i, { image: '' })}>Remove photo</button>}
+                <button type="button" className="rounded px-2 py-1 font-semibold text-red-700 hover:bg-red-50" onClick={() => setRows(rows.filter((_, j) => j !== i))}>Remove</button>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" className="btn-green px-6" disabled={pending} onClick={() => run(() => saveSettings('home_cities', rows))}>
+          {pending ? 'Saving…' : 'Save homepage cities'}
+        </button>
+        <Note msg={msg} />
+      </div>
+    </section>
+  );
+}
+
 // ---------- Locations ----------
 type Loc = { id: string; name: string; active: boolean };
-export function LocationList({ kind, parentId, parentName, items, linkFor }: { kind: 'city' | 'area'; parentId: string; parentName: string; items: Loc[]; linkFor?: (id: string) => string }) {
+export function LocationList({ kind, parentId, parentName, items, linkBase }: { kind: 'city' | 'area'; parentId: string; parentName: string; items: Loc[]; linkBase?: string }) {
   const [name, setName] = useState('');
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const { msg, pending, run } = useAction();
@@ -396,8 +450,8 @@ export function LocationList({ kind, parentId, parentName, items, linkFor }: { k
                 </form>
               ) : (
                 <>
-                  {linkFor ? (
-                    <Link href={linkFor(l.id)} className={`font-medium hover:text-brand-greenDark ${l.active ? '' : 'text-muted line-through'}`}>{l.name} →</Link>
+                  {linkBase ? (
+                    <Link href={`${linkBase}${l.id}`} className={`font-medium hover:text-brand-greenDark ${l.active ? '' : 'text-muted line-through'}`}>{l.name} →</Link>
                   ) : (
                     <span className={l.active ? 'font-medium' : 'text-muted line-through'}>{l.name}</span>
                   )}

@@ -2,9 +2,8 @@ import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
 import { formatDate, getPosts } from '@/lib/blog';
-import { cities } from '@/lib/content';
 import { getAgents, getCityCounts, getFeatured } from '@/lib/data';
-import { getHero, getPartners, getTeam, loadRates } from '@/lib/settings';
+import { citySlug, getHero, getHomeCities, getPartners, getTeam, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 const reviews = [
@@ -15,7 +14,7 @@ const reviews = [
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts, hero, team, partners, , allPosts] = await Promise.all([
+  const [featured, agents, counts, hero, team, partners, , allPosts, cities] = await Promise.all([
     getFeatured(6),
     getAgents(),
     getCityCounts(),
@@ -24,6 +23,7 @@ export default async function HomePage() {
     getPartners(),
     loadRates(),
     getPosts(),
+    getHomeCities(),
   ]);
   // Newest posts first; four across on desktop, like the old homepage.
   const posts = allPosts.slice(0, 4);
@@ -76,18 +76,27 @@ export default async function HomePage() {
             <p className="section-sub">Discover the best properties across top cities tailored to your needs.</p>
           </div>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {cities.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/properties?city=${c.slug}`}
-                className="group flex h-36 flex-col justify-end rounded-xl bg-brand-ink p-5 text-white transition-colors hover:bg-brand-greenDark"
-              >
-                <span className="font-display text-2xl">{c.name}</span>
-                <span className="text-sm text-white/75">
-                  {counts[c.slug] ?? 0} {counts[c.slug] === 1 ? 'property' : 'properties'} · {c.state}
-                </span>
-              </Link>
-            ))}
+            {cities.map((c) => {
+              const slug = citySlug(c.name);
+              const n = counts[slug] ?? 0;
+              return (
+                <Link
+                  key={slug}
+                  href={`/properties?city=${slug}`}
+                  className="group relative isolate flex h-44 flex-col justify-end overflow-hidden rounded-xl bg-brand-ink p-5 text-white sm:h-52"
+                >
+                  {c.image && (
+                    <img src={c.image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                  )}
+                  {/* Darkens the bottom of the photo so the name stays readable; turns green on hover */}
+                  <span className="absolute inset-0 -z-10 bg-gradient-to-t from-brand-ink/90 via-brand-ink/35 to-transparent transition-colors duration-300 group-hover:from-brand-greenDark/90" aria-hidden="true" />
+                  <span className="font-display text-2xl">{c.name}</span>
+                  <span className="text-sm text-white/80">
+                    {n} {n === 1 ? 'property' : 'properties'}{c.state ? ` · ${c.state}` : ''}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import { LocationList, SiteTabs } from '@/components/portal/SiteForms';
+import { HomeCitiesEditor, LocationList, SiteTabs } from '@/components/portal/SiteForms';
+import { getHomeCities } from '@/lib/settings';
 import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Locations' };
 
 /** Country → state → city → area. Add the cities and areas agents ask for; hide ones you don't use. */
 export default async function LocationsPage({ searchParams }: { searchParams: { state?: string; city?: string } }) {
-  await requirePerm('website');
+  const me = await requirePerm('website');
   const supabase = createClient();
+  const homeCities = await getHomeCities();
   const { data: states } = await supabase.from('states').select('id, name, country_code').order('country_code').order('name');
   const state = (states ?? []).find((s) => s.id === searchParams.state) ?? (states ?? []).find((s) => s.name === 'Ogun');
   const [{ data: cities }, cityRes] = await Promise.all([
@@ -21,6 +23,8 @@ export default async function LocationsPage({ searchParams }: { searchParams: { 
     <div className="mx-auto max-w-5xl">
       <h1 className="mb-6 font-display text-4xl">Website</h1>
       <SiteTabs />
+      <HomeCitiesEditor userId={me.id} initial={homeCities} />
+      <h2 className="mb-1 font-semibold">Location lists</h2>
       <p className="mb-5 text-sm text-muted">These lists feed the location dropdowns in the listing form. Hidden ones stay on existing listings but can’t be picked for new ones.</p>
       <div className="grid gap-6 lg:grid-cols-[240px_1fr_1fr]">
         <nav className="max-h-[70vh] overflow-y-auto rounded-xl border border-line bg-white p-2" aria-label="States">
@@ -36,7 +40,7 @@ export default async function LocationsPage({ searchParams }: { searchParams: { 
           ))}
         </nav>
         {state && (
-          <LocationList kind="city" parentId={state.id} parentName={state.name} items={cities ?? []} linkFor={(id) => `/portal/site/locations?state=${state.id}&city=${id}`} />
+          <LocationList kind="city" parentId={state.id} parentName={state.name} items={cities ?? []} linkBase={`/portal/site/locations?state=${state.id}&city=`} />
         )}
         {city ? (
           <LocationList kind="area" parentId={city.id} parentName={city.name} items={areas ?? []} />

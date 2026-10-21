@@ -17,7 +17,7 @@ function refreshSite() {
 }
 
 // ---------- Settings ----------
-export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortgage' | 'lead_recipients', value: unknown): Promise<R> {
+export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortgage' | 'lead_recipients' | 'home_cities', value: unknown): Promise<R> {
   await requirePerm('website');
   let v: unknown;
   if (key === 'contact') {
@@ -58,6 +58,14 @@ export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortga
     } catch {
       return { ok: false, error: 'Check the mortgage numbers: one of them is outside a sensible range.' };
     }
+  } else if (key === 'home_cities') {
+    const rows = (Array.isArray(value) ? value : []).slice(0, 12).map((c: Record<string, string>) => ({
+      name: clean(c.name, 60),
+      state: clean(c.state, 60),
+      image: clean(c.image, 500),
+    }));
+    if (rows.some((c) => c.name.length < 2)) return { ok: false, error: 'Every city needs a name.' };
+    v = rows;
   } else {
     const list = (value as string[]).map((e) => clean(e, 160).toLowerCase()).filter(Boolean);
     const bad = list.find((e) => !EMAIL.test(e));

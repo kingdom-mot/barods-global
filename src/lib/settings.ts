@@ -24,6 +24,8 @@ export type MortgageSettings = {
 };
 export type Service = { slug: string; name: string; summary: string; body: string | null; image: string };
 export type Partner = { name: string; logo: string; link: string | null };
+/** A card in "Explore Our Properties by City" on the homepage. */
+export type HomeCity = { name: string; state: string; image: string };
 
 export const DEFAULTS = {
   contact: { ...local.contact, whatsapp: local.contact.phone } as Contact,
@@ -68,6 +70,14 @@ export async function getHero(): Promise<Hero> {
   const h = { ...DEFAULTS.hero, ...((await settings()).hero as Partial<Hero>) };
   return { ...h, image: h.image || DEFAULTS.hero.image };
 }
+export const citySlug = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+export async function getHomeCities(): Promise<HomeCity[]> {
+  const saved = (await settings()).home_cities;
+  if (Array.isArray(saved) && saved.length) return saved as HomeCity[];
+  return local.cities.map((c) => ({ name: c.name, state: c.state, image: '' }));
+}
+
 export async function getMortgageSettings(): Promise<MortgageSettings> {
   return { ...DEFAULTS.mortgage, ...((await settings()).mortgage as Partial<MortgageSettings>) };
 }
