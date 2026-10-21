@@ -1,4 +1,4 @@
-import { KeyValueForm, LeadRecipientsForm, RatesPanel, SiteTabs } from '@/components/portal/SiteForms';
+import { KeyValueForm, LeadRecipientsForm, RatesPanel, ReviewsWidgetForm, SiteTabs } from '@/components/portal/SiteForms';
 import { DEFAULTS } from '@/lib/settings';
 import { createClient, requirePerm } from '@/lib/supabase/server';
 
@@ -56,6 +56,7 @@ export default async function SiteSettingsPage() {
           initial={{ ...DEFAULTS.socials, ...(s.socials ?? {}) }}
           fields={['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'].map((k) => ({ key: k, label: k === 'x' ? 'X (Twitter)' : k[0].toUpperCase() + k.slice(1), type: 'url' as const }))}
         />
+        <ReviewsWidgetForm initialId={(s.reviews_widget as { id?: string } | undefined)?.id ?? null} />
         <LeadRecipientsForm initial={recipients} />
         <KeyValueForm
           settingKey="mortgage"

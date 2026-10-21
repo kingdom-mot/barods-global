@@ -2,16 +2,17 @@ import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
 import GoogleReviews from '@/components/GoogleReviews';
+import TrustindexWidget from '@/components/TrustindexWidget';
 import { formatDate, getPosts } from '@/lib/blog';
 import { getGoogleReviews, WRITE_REVIEW_URL } from '@/lib/reviews';
 import { getAgents, getCityCounts, getFeatured } from '@/lib/data';
-import { citySlug, getHero, getHomeCities, getPartners, getTeam, loadRates } from '@/lib/settings';
+import { citySlug, getHero, getHomeCities, getPartners, getReviewsWidgetId, getTeam, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts, hero, team, partners, , allPosts, cities, reviews] = await Promise.all([
+  const [featured, agents, counts, hero, team, partners, , allPosts, cities, reviews, widgetId] = await Promise.all([
     getFeatured(6),
     getAgents(),
     getCityCounts(),
@@ -22,6 +23,7 @@ export default async function HomePage() {
     getPosts(),
     getHomeCities(),
     getGoogleReviews(),
+    getReviewsWidgetId(),
   ]);
   // Newest posts first; four across on desktop, like the old homepage.
   const posts = allPosts.slice(0, 4);
@@ -151,7 +153,20 @@ export default async function HomePage() {
       {/* Reviews */}
       <section className="bg-paper py-16 sm:py-20">
         <div className="container-site">
-          <GoogleReviews data={reviews} writeUrl={WRITE_REVIEW_URL} />
+          {widgetId ? (
+            <>
+              <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="section-title">What Our Clients Say</h2>
+                  <p className="section-sub">From our Google reviews</p>
+                </div>
+                <a href={WRITE_REVIEW_URL} target="_blank" rel="noopener noreferrer" className="btn-outline">Write a review</a>
+              </div>
+              <TrustindexWidget id={widgetId} />
+            </>
+          ) : (
+            <GoogleReviews data={reviews} writeUrl={WRITE_REVIEW_URL} />
+          )}
         </div>
       </section>
 

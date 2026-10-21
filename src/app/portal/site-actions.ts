@@ -17,7 +17,7 @@ function refreshSite() {
 }
 
 // ---------- Settings ----------
-export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortgage' | 'lead_recipients' | 'home_cities', value: unknown): Promise<R> {
+export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortgage' | 'lead_recipients' | 'home_cities' | 'reviews_widget', value: unknown): Promise<R> {
   await requirePerm('website');
   let v: unknown;
   if (key === 'contact') {
@@ -57,6 +57,15 @@ export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortga
       };
     } catch {
       return { ok: false, error: 'Check the mortgage numbers: one of them is outside a sensible range.' };
+    }
+  } else if (key === 'reviews_widget') {
+    // Only the widget ID is kept, never the pasted HTML, so nothing else can be injected into the site.
+    const code = clean((value as { code?: string })?.code, 2000);
+    if (!code) v = {};
+    else {
+      const id = code.match(/trustindex\.io\/loader\.js\?([A-Za-z0-9_-]{6,64})/)?.[1] ?? (/^[A-Za-z0-9_-]{6,64}$/.test(code) ? code : null);
+      if (!id) return { ok: false, error: 'That doesn’t look like a Trustindex widget code. Paste the whole code from Trustindex (it contains cdn.trustindex.io/loader.js?…).' };
+      v = { provider: 'trustindex', id };
     }
   } else if (key === 'home_cities') {
     const rows = (Array.isArray(value) ? value : []).slice(0, 12).map((c: Record<string, string>) => ({

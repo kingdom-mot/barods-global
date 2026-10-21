@@ -355,6 +355,49 @@ export function ServicesEditor({ rows, userId }: { rows: ServiceRow[]; userId: s
   );
 }
 
+// ---------- Google reviews widget ----------
+export function ReviewsWidgetForm({ initialId }: { initialId: string | null }) {
+  const [code, setCode] = useState('');
+  const { msg, pending, run } = useAction();
+  return (
+    <section className="space-y-4 rounded-xl border border-line bg-white p-5">
+      <div>
+        <h2 className="font-semibold">Google reviews on the homepage</h2>
+        <p className="text-sm text-muted">
+          {initialId ? (
+            <>Connected: the homepage shows your live Google reviews (widget {initialId}).</>
+          ) : (
+            <>Not connected yet: the homepage shows three saved reviews.</>
+          )}
+        </p>
+      </div>
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-muted">
+        <li>Create a free account at <a href="https://www.trustindex.io" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-greenDark underline">trustindex.io</a> and connect the Barods Global Google Business profile.</li>
+        <li>Pick a layout (a slider suits the homepage) and copy the <strong>HTML / JavaScript</strong> widget code.</li>
+        <li>Paste it below and save.</li>
+      </ol>
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          run(() => saveSettings('reviews_widget', { code }), () => setCode(''));
+        }}
+      >
+        <textarea className="field font-mono text-xs" rows={3} value={code} onChange={(e) => setCode(e.target.value)} placeholder="<script defer async src='https://cdn.trustindex.io/loader.js?…'></script>" />
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" className="btn-green px-6" disabled={pending || !code.trim()}>{pending ? 'Saving…' : initialId ? 'Replace widget' : 'Connect widget'}</button>
+          {initialId && (
+            <button type="button" className="text-sm font-semibold text-red-700 hover:underline" disabled={pending} onClick={() => confirm('Remove the reviews widget? The homepage goes back to the saved reviews.') && run(() => saveSettings('reviews_widget', { code: '' }))}>
+              Remove widget
+            </button>
+          )}
+        </div>
+      </form>
+      <Note msg={msg} />
+    </section>
+  );
+}
+
 // ---------- Homepage cities ----------
 type HomeCity = { name: string; state: string; image: string };
 /** The city cards on the homepage: photo, name, state. Each card opens the properties in that city. */

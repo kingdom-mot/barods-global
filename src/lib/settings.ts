@@ -78,6 +78,12 @@ export async function getHomeCities(): Promise<HomeCity[]> {
   return local.cities.map((c) => ({ name: c.name, state: c.state, image: '' }));
 }
 
+/** Trustindex widget ID, when Barods has connected a free Google reviews widget (Website → Settings). */
+export async function getReviewsWidgetId(): Promise<string | null> {
+  const w = (await settings()).reviews_widget as { id?: string } | undefined;
+  return w?.id && /^[A-Za-z0-9_-]{6,64}$/.test(w.id) ? w.id : null;
+}
+
 export async function getMortgageSettings(): Promise<MortgageSettings> {
   return { ...DEFAULTS.mortgage, ...((await settings()).mortgage as Partial<MortgageSettings>) };
 }
