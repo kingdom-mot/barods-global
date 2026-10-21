@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
+import { formatDate, getPosts } from '@/lib/blog';
 import { cities } from '@/lib/content';
 import { getAgents, getCityCounts, getFeatured } from '@/lib/data';
 import { getHero, getPartners, getTeam, loadRates } from '@/lib/settings';
@@ -14,7 +15,7 @@ const reviews = [
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts, hero, team, partners] = await Promise.all([
+  const [featured, agents, counts, hero, team, partners, , allPosts] = await Promise.all([
     getFeatured(6),
     getAgents(),
     getCityCounts(),
@@ -22,7 +23,10 @@ export default async function HomePage() {
     getTeam('home'),
     getPartners(),
     loadRates(),
+    getPosts(),
   ]);
+  // Newest posts first; four across on desktop, like the old homepage.
+  const posts = allPosts.slice(0, 4);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
 
   return (
@@ -168,6 +172,50 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Blog */}
+      {posts.length > 0 && (
+        <section className="container-site py-16 sm:py-20">
+          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="section-title">Read From Our Blog</h2>
+              <p className="section-sub">Stay Inspired With Expert Stories, Ideas, and Trends.</p>
+            </div>
+            <Link href="/blog" className="btn-outline">Read more</Link>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {posts.map((post) => (
+              <article key={post.slug} className="group flex flex-col overflow-hidden rounded-xl border border-line bg-white transition-shadow hover:shadow-md">
+                <Link href={`/blog/${post.slug}`} tabIndex={-1} aria-hidden="true" className="block overflow-hidden">
+                  {post.coverUrl ? (
+                    <img src={post.coverUrl} alt="" className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                  ) : (
+                    <div className="flex aspect-[16/10] items-center justify-center bg-brand-greenLight">
+                      <img src="/brand/icon.png" alt="" className="h-12 w-12 opacity-40" />
+                    </div>
+                  )}
+                </Link>
+                <div className="flex flex-1 flex-col p-5">
+                  <p className="text-xs text-muted">
+                    {formatDate(post.publishedAt)}
+                    {post.category && <> · <span className="font-semibold text-brand-greenDark">{post.category}</span></>}
+                  </p>
+                  <h3 className="mt-2 text-[17px] font-semibold leading-snug">
+                    <Link href={`/blog/${post.slug}`} className="hover:text-brand-greenDark">{post.title}</Link>
+                  </h3>
+                  {post.excerpt && <p className="mt-2 line-clamp-3 text-sm text-muted">{post.excerpt}</p>}
+                  <div className="mt-auto space-y-2 pt-4 text-sm">
+                    {post.author && <p className="text-muted">by {post.author}</p>}
+                    <Link href={`/blog/${post.slug}`} className="inline-block font-semibold text-brand-greenDark hover:underline">
+                      Continue reading →
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="bg-brand-green">

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export type PostInput = {
   id?: string;
@@ -21,7 +21,7 @@ const slugify = (s: string) =>
   s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 90);
 
 export async function savePost(input: PostInput): Promise<{ ok: true; id: string; slug: string } | { ok: false; error: string }> {
-  const me = await requireStaff();
+  const me = await requirePerm('blog');
   const supabase = createClient();
   const title = input.title.trim();
   if (title.length < 5) return { ok: false, error: 'Add a title (at least 5 characters).' };
@@ -80,7 +80,7 @@ export async function savePost(input: PostInput): Promise<{ ok: true; id: string
 }
 
 export async function deletePost(id: string) {
-  const me = await requireStaff();
+  const me = await requirePerm('blog');
   const supabase = createClient();
   const { error } = await supabase.from('posts').delete().eq('id', id);
   if (!error) await supabase.from('activity_log').insert({ actor: me.id, action: 'post deleted', entity: 'post', entity_id: id });

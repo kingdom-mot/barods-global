@@ -6,11 +6,11 @@ export const metadata = { title: 'Add a listing' };
 
 export default async function NewListingPage() {
   const me = await requireUser();
-  const lookups = await getLookups(createClient(), me.isStaff);
+  const lookups = await getLookups(createClient(), me.can.listings);
   return (
     <>
       <h1 className="mx-auto mb-6 max-w-3xl font-display text-4xl">Add a listing</h1>
-      <ListingForm userId={me.id} isStaff={me.isStaff} lookups={lookups} />
+      <ListingForm userId={me.id} isStaff={me.can.listings} lookups={lookups} />
     </>
   );
 }

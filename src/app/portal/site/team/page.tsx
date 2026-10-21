@@ -1,10 +1,10 @@
 import { SiteTabs, TeamEditor } from '@/components/portal/SiteForms';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Team' };
 
 export default async function TeamContentPage() {
-  const me = await requireStaff();
+  const me = await requirePerm('website');
   const { data } = await createClient().from('team_members').select('*').order('sort');
   return (
     <div className="mx-auto max-w-5xl">

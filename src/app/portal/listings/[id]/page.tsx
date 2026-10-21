@@ -9,7 +9,7 @@ export const metadata = { title: 'Edit listing' };
 export default async function EditListingPage({ params }: { params: { id: string } }) {
   const me = await requireUser();
   const supabase = createClient();
-  const [listing, lookups] = await Promise.all([getListingForEdit(supabase, params.id), getLookups(supabase, me.isStaff)]);
+  const [listing, lookups] = await Promise.all([getListingForEdit(supabase, params.id), getLookups(supabase, me.can.listings)]);
   if (!listing) notFound();
   const st = STATUS_LABEL[listing.status ?? 'draft'];
   return (
@@ -18,7 +18,7 @@ export default async function EditListingPage({ params }: { params: { id: string
         <p className="text-sm text-muted">{listing.ref} · <span className={`badge ${st.cls}`}>{st.text}</span></p>
         <h1 className="font-display text-4xl">Edit listing</h1>
       </div>
-      <ListingForm userId={me.id} isStaff={me.isStaff} lookups={lookups} initial={listing} />
+      <ListingForm userId={me.id} isStaff={me.can.listings} lookups={lookups} initial={listing} />
     </>
   );
 }

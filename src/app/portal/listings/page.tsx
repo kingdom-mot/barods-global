@@ -29,14 +29,14 @@ export default async function ListingsPage({ searchParams }: { searchParams: { s
     .select('id, ref, slug, title, purpose, status, availability, featured, label, price, currency, price_on_application, updated_at, review_note, agent_id, agents(full_name), property_media(url, sort, kind)')
     .order('updated_at', { ascending: false })
     .limit(300);
-  if (!me.isStaff) q = q.eq('agent_id', me.agent?.id ?? '00000000-0000-0000-0000-000000000000');
+  if (!me.can.listings) q = q.eq('agent_id', me.agent?.id ?? '00000000-0000-0000-0000-000000000000');
   if (searchParams.status) q = q.eq('status', searchParams.status);
   const { data: rows } = await q;
 
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-4xl">{me.isStaff ? 'All listings' : 'My listings'}</h1>
+        <h1 className="font-display text-4xl">{me.can.listings ? 'All listings' : 'My listings'}</h1>
         <Link href="/portal/listings/new" className="btn-green px-6">+ Add a listing</Link>
       </div>
 
@@ -93,13 +93,13 @@ export default async function ListingsPage({ searchParams }: { searchParams: { s
                   <Link href={`/portal/listings/${r.id}`} className="block truncate font-semibold hover:text-brand-greenDark">{r.title}</Link>
                   <div className="text-sm text-muted">
                     {r.price_on_application ? 'Price on request' : naira(r.price, r.currency)}
-                    {me.isStaff && agentName ? ` · ${agentName}` : ''}
+                    {me.can.listings && agentName ? ` · ${agentName}` : ''}
                     {' · '}updated {new Date(r.updated_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
                   </div>
                   {r.status === 'sent_back' && r.review_note && <p className="mt-1 text-sm text-red-800">Admin note: {r.review_note}</p>}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <ListingRowActions id={r.id} status={r.status} availability={r.availability} purpose={r.purpose} isStaff={me.isStaff} featured={r.featured} label={r.label} />
+                  <ListingRowActions id={r.id} status={r.status} availability={r.availability} purpose={r.purpose} isStaff={me.can.listings} featured={r.featured} label={r.label} />
                   {r.status === 'published' && (
                     <Link href={`/property/${r.slug}`} target="_blank" className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold hover:border-brand-green">View live</Link>
                   )}

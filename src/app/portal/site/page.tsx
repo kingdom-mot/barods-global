@@ -1,11 +1,11 @@
 import { KeyValueForm, LeadRecipientsForm, RatesPanel, SiteTabs } from '@/components/portal/SiteForms';
 import { DEFAULTS } from '@/lib/settings';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Website settings' };
 
 export default async function SiteSettingsPage() {
-  const me = await requireStaff();
+  const me = await requirePerm('website');
   const supabase = createClient();
   const [{ data: rows }, { data: rates }] = await Promise.all([
     supabase.from('site_settings').select('key, value'),

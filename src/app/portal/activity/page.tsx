@@ -1,9 +1,9 @@
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Activity log' };
 
 export default async function ActivityPage() {
-  await requireStaff();
+  await requirePerm('activity');
   const supabase = createClient();
   const [{ data: rows }, { data: people }] = await Promise.all([
     supabase.from('activity_log').select('id, actor, action, entity, entity_id, created_at').order('created_at', { ascending: false }).limit(300),

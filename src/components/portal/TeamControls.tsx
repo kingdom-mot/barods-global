@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { inviteAgentCard, inviteMember, removeMember, resendAccess, setRole, setSuspended, setVerified } from '@/app/portal/admin-actions';
+import { inviteAgentCard, inviteMember, removeMember, resendAccess, setPermissions, setRole, setSuspended, setVerified } from '@/app/portal/admin-actions';
+import { PERMISSIONS, type PermKey } from '@/lib/permissions';
 
 type Msg = { ok: boolean; text: string } | null;
 
@@ -11,7 +12,7 @@ function Note({ msg }: { msg: Msg }) {
   return <p className={`mt-2 rounded-md px-3 py-2 text-xs ${msg.ok ? 'bg-brand-greenLight text-brand-greenDark' : 'bg-red-50 text-red-800'}`} role="status">{msg.text}</p>;
 }
 
-export function InviteForm() {
+export function InviteForm({ allowAdmin = true }: { allowAdmin?: boolean }) {
   const router = useRouter();
   const [msg, setMsg] = useState<Msg>(null);
   const [pending, start] = useTransition();
@@ -38,13 +39,17 @@ export function InviteForm() {
       <h2 className="font-semibold sm:col-span-2">Invite someone</h2>
       <label className="label">Full name<input name="fullName" className="field" required placeholder="e.g. Adaeze Okafor" /></label>
       <label className="label">Barods email<input name="email" type="email" className="field" required placeholder="name@barodsglobal.com" /></label>
-      <label className="label">
-        Role
-        <select name="role" className="field" defaultValue="agent">
-          <option value="agent">Agent: own listings and leads</option>
-          <option value="admin">Admin: everything, including approvals</option>
-        </select>
-      </label>
+      {allowAdmin ? (
+        <label className="label">
+          Role
+          <select name="role" className="field" defaultValue="agent">
+            <option value="agent">Agent: own listings and leads (add permissions after)</option>
+            <option value="admin">Admin: everything, including approvals</option>
+          </select>
+        </label>
+      ) : (
+        <input type="hidden" name="role" value="agent" />
+      )}
       <label className="label">Position (optional)<input name="position" className="field" placeholder="Property Consultant" /></label>
       <div className="sm:col-span-2">
         <button type="submit" className="btn-green px-6" disabled={pending}>{pending ? 'Sending invite…' : 'Send invite'}</button>
@@ -63,6 +68,7 @@ export function MemberActions({
   verified,
   isOwner,
   isMe,
+  canManage = true,
 }: {
   profileId: string;
   agentId: string | null;
@@ -72,6 +78,8 @@ export function MemberActions({
   verified: boolean;
   isOwner: boolean;
   isMe: boolean;
+  /** Admins can change roles, suspend and remove; people with only the Invite agents permission can't. */
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [msg, setMsg] = useState<Msg>(null);
@@ -96,7 +104,7 @@ export function MemberActions({
             {verified ? 'Remove verified badge' : 'Mark verified'}
           </button>
         )}
-        {!isOwner && !isMe && (
+        {canManage && !isOwner && !isMe && (
           <>
             <button type="button" className={btn} disabled={pending} onClick={() => run(() => setRole(profileId, role === 'admin' ? 'agent' : 'admin'))}>
               {role === 'admin' ? 'Make agent' : 'Make admin'}
@@ -146,6 +154,68 @@ export function InviteCardButton({ agentId, name }: { agentId: string; name: str
         {pending ? 'Sending…' : 'Send portal invite'}
       </button>
       <Note msg={msg} />
+    </div>
+  );
+}
+
+/** Tick what an agent may do beyond their own listings, leads and profile. */
+export function PermissionsEditor({ profileId, name, initial }: { profileId: string; name: string; initial: PermKey[] }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState<PermKey[]>(initial);
+  const [msg, setMsg] = useState<Msg>(null);
+  const [pending, start] = useTransition();
+  const changed = sel.length !== initial.length || sel.some((k) => !initial.includes(k));
+  const toggle = (k: PermKey) => setSel((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
+  const first = name.replace(/^ESV\s+/, '').split(' ')[0];
+
+  return (
+    <div className="w-full border-t border-line pt-3">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center justify-between gap-3 text-left text-sm">
+        <span>
+          <span className="font-semibold">Permissions</span>{' '}
+          <span className="text-muted">
+            {initial.length
+              ? `· own work + ${initial.map((k) => PERMISSIONS.find((p) => p.key === k)?.label).join(', ')}`
+              : '· own listings, leads and profile only'}
+          </span>
+        </span>
+        <span className="shrink-0 text-xs font-semibold text-brand-greenDark">{open ? 'Close' : 'Edit'}</span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-muted">{first} can always manage their own listings, their own leads and their profile. Tick anything extra they should be able to do.</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PERMISSIONS.map((p) => (
+              <label key={p.key} className={`flex cursor-pointer gap-3 rounded-lg border p-3 text-sm transition-colors ${sel.includes(p.key) ? 'border-brand-green bg-brand-greenLight/50' : 'border-line hover:border-brand-green'}`}>
+                <input type="checkbox" checked={sel.includes(p.key)} onChange={() => toggle(p.key)} className="mt-0.5 h-4 w-4 shrink-0 accent-brand-green" />
+                <span>
+                  <span className="block font-semibold">{p.label}</span>
+                  <span className="block text-xs text-muted">{p.description}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="btn-green min-h-[36px] px-5 text-xs"
+              disabled={pending || !changed}
+              onClick={() =>
+                start(async () => {
+                  const r = await setPermissions(profileId, sel);
+                  setMsg(r.ok ? { ok: true, text: r.message ?? 'Saved.' } : { ok: false, text: r.error });
+                  router.refresh();
+                })
+              }
+            >
+              {pending ? 'Saving…' : 'Save permissions'}
+            </button>
+            {changed && !pending && <button type="button" className="text-xs text-muted hover:text-brand-ink" onClick={() => setSel(initial)}>Undo changes</button>}
+          </div>
+          <Note msg={msg} />
+        </div>
+      )}
     </div>
   );
 }

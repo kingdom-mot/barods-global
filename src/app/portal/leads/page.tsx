@@ -26,8 +26,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="mb-2 font-display text-4xl">{me.isStaff ? 'All leads' : 'My leads'}</h1>
-      <p className="mb-6 text-sm text-muted">Everyone who enquired or asked for a tour{me.isStaff ? '' : ' on your listings or profile'}. Call or WhatsApp them, then update the status.</p>
+      <h1 className="mb-2 font-display text-4xl">{me.can.leads ? 'All leads' : 'My leads'}</h1>
+      <p className="mb-6 text-sm text-muted">Everyone who enquired or asked for a tour{me.can.leads ? '' : ' on your listings or profile'}. Call or WhatsApp them, then update the status.</p>
 
       <nav className="mb-5 flex flex-wrap gap-2" aria-label="Filter by status">
         {[['', 'All'] as [string, string], ...LEAD_STATUS].map(([v, l]) => (
@@ -69,7 +69,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
                       Tour requested for {new Date(l.viewing_at).toLocaleString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}
                     </div>
                   )}
-                  {me.isStaff && agent && <div className="text-muted">Agent: {agent}</div>}
+                  {me.can.leads && agent && <div className="text-muted">Agent: {agent}</div>}
                   {l.message && <p className="whitespace-pre-line text-muted">{l.message}</p>}
                   <div className="flex flex-wrap gap-2 pt-1">
                     {l.phone && <a href={`tel:${l.phone}`} className="rounded-md border border-line px-3 py-1.5 font-semibold hover:border-brand-green">Call {l.phone}</a>}

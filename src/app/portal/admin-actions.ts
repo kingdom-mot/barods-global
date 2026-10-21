@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { sendInviteEmail } from '@/lib/email';
 import { adminClient } from '@/lib/supabase/admin';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { isPermKey, PERMISSIONS, type PermKey } from '@/lib/permissions';
+import { createClient, requirePerm, requireStaff, requireUser } from '@/lib/supabase/server';
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 const DOMAIN = '@barodsglobal.com';
@@ -17,7 +18,7 @@ function siteOrigin() {
 }
 
 async function log(action: string, entity: string, entityId: string) {
-  const me = await requireStaff();
+  const me = await requireUser();
   await createClient().from('activity_log').insert({ actor: me.id, action, entity, entity_id: entityId });
 }
 
@@ -44,7 +45,7 @@ async function sendAccessLink(kind: 'invite' | 'recovery', email: string, fullNa
 }
 
 export async function inviteMember(input: { fullName: string; email: string; role: 'agent' | 'admin'; position: string }): Promise<Result> {
-  const me = await requireStaff();
+  const me = await requirePerm('team');
   const email = input.email.trim().toLowerCase();
   const fullName = input.fullName.trim().replace(/\s+/g, ' ');
   if (fullName.length < 3) return { ok: false, error: 'Enter their full name.' };
@@ -71,9 +72,10 @@ export async function inviteMember(input: { fullName: string; email: string; rol
 }
 
 export async function resendAccess(profileId: string, kind: 'invite' | 'recovery'): Promise<Result> {
-  const me = await requireStaff();
-  const { data: p } = await adminClient().from('profiles').select('email, full_name').eq('id', profileId).maybeSingle();
+  const me = await requirePerm('team');
+  const { data: p } = await adminClient().from('profiles').select('email, full_name, role').eq('id', profileId).maybeSingle();
   if (!p) return { ok: false, error: 'Account not found.' };
+  if (p.role !== 'agent' && !me.isStaff) return { ok: false, error: 'Only admins can send links to admin accounts.' };
   const r = await sendAccessLink(kind, p.email, p.full_name, me.agent?.fullName ?? me.fullName);
   if (r.ok) await log(kind === 'invite' ? 'resent invite' : 'sent password reset', 'profile', profileId);
   return r.ok ? { ok: true, message: kind === 'invite' ? 'Invite sent again.' : 'Password reset link sent.' } : r;
@@ -134,8 +136,8 @@ export async function removeMember(profileId: string): Promise<Result> {
 }
 
 export async function setVerified(agentId: string, verified: boolean): Promise<Result> {
-  await requireStaff();
-  const { error } = await createClient().from('agents').update({ verified }).eq('id', agentId);
+  await requirePerm('team');
+  const { error } = await adminClient().from('agents').update({ verified }).eq('id', agentId);
   if (error) return { ok: false, error: error.message };
   await log(verified ? 'verified agent' : 'unverified agent', 'agent', agentId);
   revalidatePath('/portal/team');
@@ -144,7 +146,7 @@ export async function setVerified(agentId: string, verified: boolean): Promise<R
 
 /** Admin-only listing controls: featured, label, archive / restore. */
 export async function setListingFlags(id: string, flags: { featured?: boolean; label?: string | null; archived?: boolean }): Promise<Result> {
-  await requireStaff();
+  await requirePerm('listings');
   const update: Record<string, unknown> = {};
   if (flags.featured !== undefined) update.featured = flags.featured;
   if (flags.label !== undefined) update.label = flags.label || null;
@@ -154,4 +156,21 @@ export async function setListingFlags(id: string, flags: { featured?: boolean; l
   await log(`listing ${Object.keys(flags).join(', ')} changed`, 'property', id);
   revalidatePath('/portal/listings');
   return { ok: true };
+}
+
+/** Admins choose what an agent can do beyond their own listings, leads and profile. */
+export async function setPermissions(profileId: string, permissions: PermKey[]): Promise<Result> {
+  const me = await requireStaff();
+  const t = await guardTarget(profileId, me.id);
+  if (typeof t === 'string') return { ok: false, error: t };
+  const admin = adminClient();
+  const { data: target } = await admin.from('profiles').select('role, full_name').eq('id', profileId).maybeSingle();
+  if (target?.role !== 'agent') return { ok: false, error: 'Admins already have every permission.' };
+  const clean = [...new Set(permissions.filter(isPermKey))];
+  const { error } = await admin.from('profiles').update({ permissions: clean }).eq('id', profileId);
+  if (error) return { ok: false, error: error.message.includes('permissions') ? 'Run the 0009_permissions.sql update in Supabase first.' : error.message };
+  const names = clean.map((k) => PERMISSIONS.find((x) => x.key === k)?.label).join(', ');
+  await log(clean.length ? `permissions set: ${names}` : 'permissions cleared', 'profile', profileId);
+  revalidatePath('/portal', 'layout');
+  return { ok: true, message: clean.length ? `Saved. ${target.full_name.split(' ')[0]} can now also: ${names}.` : 'Saved. Own listings, leads and profile only.' };
 }

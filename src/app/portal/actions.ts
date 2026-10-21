@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient, requireStaff, requireUser } from '@/lib/supabase/server';
+import { createClient, requirePerm, requireUser } from '@/lib/supabase/server';
 import { sendNotice, SITE } from '@/lib/email';
 import { adminClient } from '@/lib/supabase/admin';
 
@@ -80,8 +80,8 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
   const me = await requireUser();
   const supabase = createClient();
 
-  if (intent === 'publish' && !me.isStaff) return { ok: false, error: 'Only admins can publish directly.' };
-  if (!me.isStaff && !me.agent) return { ok: false, error: 'Your agent profile isn’t set up yet. Ask an admin.' };
+  if (intent === 'publish' && !me.can.listings) return { ok: false, error: 'Only admins can publish directly.' };
+  if (!me.can.listings && !me.agent) return { ok: false, error: 'Your agent profile isn’t set up yet. Ask an admin.' };
   if (intent !== 'draft') {
     const missing = [
       !input.propertyTypeId && 'property type',
@@ -147,7 +147,7 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
     video_url: input.videoUrl?.trim() || null,
     status,
     ...(intent === 'publish' ? { published_at: new Date().toISOString(), review_note: null } : {}),
-    ...(me.isStaff && input.agentId ? { agent_id: input.agentId } : {}),
+    ...(me.can.listings && input.agentId ? { agent_id: input.agentId } : {}),
   };
 
   let id = input.id;
@@ -159,7 +159,7 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
   } else {
     const { data, error } = await supabase
       .from('properties')
-      .insert({ ...row, agent_id: me.isStaff ? input.agentId || null : me.agent!.id })
+      .insert({ ...row, agent_id: me.can.listings ? input.agentId || me.agent?.id || null : me.agent!.id })
       .select('id, ref')
       .single();
     if (error || !data) return { ok: false, error: 'Couldn’t save this listing. Please try again.' };
@@ -214,7 +214,7 @@ export async function setAvailability(id: string, availability: 'available' | 'u
 }
 
 export async function reviewListing(id: string, decision: 'approve' | 'send_back', note: string) {
-  await requireStaff();
+  await requirePerm('listings');
   const supabase = createClient();
   const update =
     decision === 'approve'

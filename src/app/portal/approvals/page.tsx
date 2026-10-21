@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import ReviewButtons from '@/components/portal/ReviewButtons';
 import { naira } from '@/lib/portalData';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Approvals' };
 
 const PURPOSE = { sale: 'For sale', rent: 'For rent', shortlet: 'Shortlet' } as const;
 
 export default async function ApprovalsPage() {
-  await requireStaff();
+  await requirePerm('listings');
   const { data: rows } = await createClient()
     .from('properties')
     .select(

@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
 import BlogEditor from '@/components/portal/BlogEditor';
 import { BLOG_CATEGORIES } from '@/lib/blog';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Edit post' };
 
 export default async function EditPostPage({ params }: { params: { id: string } }) {
-  const me = await requireStaff();
+  const me = await requirePerm('blog');
   const { data: p } = await createClient().from('posts').select('*').eq('id', params.id).maybeSingle();
   if (!p) notFound();
   return (

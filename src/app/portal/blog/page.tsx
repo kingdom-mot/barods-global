@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Blog' };
 
@@ -10,7 +10,7 @@ const STATUS: Record<string, string> = {
 };
 
 export default async function PortalBlogPage() {
-  await requireStaff();
+  await requirePerm('blog');
   const { data: posts } = await createClient()
     .from('posts')
     .select('id, slug, title, category, status, published_at, updated_at, featured, cover_url')

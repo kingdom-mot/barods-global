@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm, requireUser } from '@/lib/supabase/server';
 
 type R = { ok: true; message?: string } | { ok: false; error: string };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -9,7 +9,7 @@ const slugify = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0
 const clean = (v: unknown, max = 500) => String(v ?? '').trim().slice(0, max);
 
 async function log(action: string, entity: string, entityId = '') {
-  const me = await requireStaff();
+  const me = await requireUser();
   await createClient().from('activity_log').insert({ actor: me.id, action, entity, entity_id: entityId });
 }
 function refreshSite() {
@@ -18,7 +18,7 @@ function refreshSite() {
 
 // ---------- Settings ----------
 export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortgage' | 'lead_recipients', value: unknown): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   let v: unknown;
   if (key === 'contact') {
     const c = value as Record<string, string>;
@@ -74,7 +74,7 @@ export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortga
 // ---------- Team ----------
 export type TeamInput = { id?: string; full_name: string; role: string; email: string; photo_url: string; show_on_home: boolean; show_on_about: boolean };
 export async function saveTeamMember(t: TeamInput): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   if (!clean(t.full_name)) return { ok: false, error: 'Add a name.' };
   if (t.email && !EMAIL.test(t.email)) return { ok: false, error: 'That email doesn’t look right.' };
   const supabase = createClient();
@@ -98,7 +98,7 @@ export async function saveTeamMember(t: TeamInput): Promise<R> {
   return { ok: true, message: 'Saved.' };
 }
 export async function deleteTeamMember(id: string): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const { error } = await createClient().from('team_members').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   await log('removed team member', 'team', id);
@@ -108,7 +108,7 @@ export async function deleteTeamMember(id: string): Promise<R> {
 
 /** Swap an item with its neighbour (for team, partners and services). */
 export async function moveItem(table: 'team_members' | 'partners' | 'services', id: string, dir: -1 | 1): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const supabase = createClient();
   const { data: rows } = await supabase.from(table).select('id, sort').order('sort');
   const list = rows ?? [];
@@ -125,7 +125,7 @@ export async function moveItem(table: 'team_members' | 'partners' | 'services', 
 
 // ---------- Partners ----------
 export async function savePartner(p: { id?: string; name: string; logo_url: string; link: string }): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   if (!clean(p.logo_url)) return { ok: false, error: 'Upload a logo.' };
   if (p.link && !/^https?:\/\//.test(p.link)) return { ok: false, error: 'The website link must start with https://' };
   const supabase = createClient();
@@ -142,7 +142,7 @@ export async function savePartner(p: { id?: string; name: string; logo_url: stri
   return { ok: true, message: 'Saved.' };
 }
 export async function deletePartner(id: string): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const { error } = await createClient().from('partners').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   await log('removed partner', 'partner', id);
@@ -152,7 +152,7 @@ export async function deletePartner(id: string): Promise<R> {
 
 // ---------- Services ----------
 export async function saveService(s: { id?: string; name: string; summary: string; body: string; image_url: string; published: boolean }): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   if (!clean(s.name)) return { ok: false, error: 'Add the service name.' };
   const supabase = createClient();
   const row = {
@@ -175,7 +175,7 @@ export async function saveService(s: { id?: string; name: string; summary: strin
   return { ok: true, message: 'Saved.' };
 }
 export async function deleteService(id: string): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const { error } = await createClient().from('services').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   await log('removed service', 'service', id);
@@ -185,7 +185,7 @@ export async function deleteService(id: string): Promise<R> {
 
 // ---------- Locations ----------
 export async function addLocation(kind: 'city' | 'area', parentId: string, name: string): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const n = clean(name, 80).replace(/\s+/g, ' ');
   if (n.length < 2) return { ok: false, error: 'Enter a name.' };
   const supabase = createClient();
@@ -199,7 +199,7 @@ export async function addLocation(kind: 'city' | 'area', parentId: string, name:
   return { ok: true, message: `${n} added. Agents can pick it straight away.` };
 }
 export async function setLocationActive(kind: 'city' | 'area', id: string, active: boolean): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const { error } = await createClient().from(kind === 'city' ? 'cities' : 'areas').update({ active }).eq('id', id);
   if (error) return { ok: false, error: error.message };
   await log(`${active ? 'showed' : 'hid'} ${kind}`, kind, id);
@@ -207,7 +207,7 @@ export async function setLocationActive(kind: 'city' | 'area', id: string, activ
   return { ok: true };
 }
 export async function renameLocation(kind: 'city' | 'area', id: string, name: string): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const n = clean(name, 80);
   if (n.length < 2) return { ok: false, error: 'Enter a name.' };
   const { error } = await createClient().from(kind === 'city' ? 'cities' : 'areas').update({ name: n }).eq('id', id);
@@ -219,7 +219,7 @@ export async function renameLocation(kind: 'city' | 'area', id: string, name: st
 
 // ---------- Exchange rates ----------
 export async function refreshRatesNow(): Promise<R> {
-  await requireStaff();
+  await requirePerm('website');
   const { refreshRates } = await import('@/lib/rates');
   const r = await refreshRates();
   if (r.ok) {

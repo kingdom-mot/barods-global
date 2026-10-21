@@ -1,10 +1,10 @@
 import { ServicesEditor, SiteTabs } from '@/components/portal/SiteForms';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Services' };
 
 export default async function ServicesContentPage() {
-  const me = await requireStaff();
+  const me = await requirePerm('website');
   const { data } = await createClient().from('services').select('*').order('sort');
   return (
     <div className="mx-auto max-w-5xl">

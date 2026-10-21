@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { LocationList, SiteTabs } from '@/components/portal/SiteForms';
-import { createClient, requireStaff } from '@/lib/supabase/server';
+import { createClient, requirePerm } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Locations' };
 
 /** Country → state → city → area. Add the cities and areas agents ask for; hide ones you don't use. */
 export default async function LocationsPage({ searchParams }: { searchParams: { state?: string; city?: string } }) {
-  await requireStaff();
+  await requirePerm('website');
   const supabase = createClient();
   const { data: states } = await supabase.from('states').select('id, name, country_code').order('country_code').order('name');
   const state = (states ?? []).find((s) => s.id === searchParams.state) ?? (states ?? []).find((s) => s.name === 'Ogun');

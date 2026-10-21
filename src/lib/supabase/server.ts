@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { PERM_KEYS, isPermKey, type PermKey } from '@/lib/permissions';
 
 type CookieList = { name: string; value: string; options: CookieOptions }[];
 
@@ -31,6 +32,10 @@ export interface PortalUser {
   role: Role;
   isOwner: boolean;
   isStaff: boolean;
+  /** Permissions ticked for this person (admins have every one). */
+  permissions: PermKey[];
+  /** What this person may do: can.listings, can.leads, can.blog, can.website, can.team, can.activity. */
+  can: Record<PermKey, boolean>;
   agent: {
     id: string;
     slug: string;
@@ -54,7 +59,7 @@ export const requireUser = cache(async (): Promise<PortalUser> => {
   if (!user) redirect('/login');
 
   const [{ data: profile }, { data: agent }] = await Promise.all([
-    supabase.from('profiles').select('full_name, email, role, is_owner').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     supabase
       .from('agents')
       .select('*') // all columns, so a newly added one never breaks sign-in
@@ -62,6 +67,10 @@ export const requireUser = cache(async (): Promise<PortalUser> => {
       .maybeSingle(),
   ]);
   if (!profile) redirect('/login?error=no-profile');
+  const isStaff = profile.role === 'admin' || profile.role === 'super_admin';
+  const granted = ((profile.permissions as unknown[] | null) ?? []).filter(isPermKey);
+  const permissions = isStaff ? [...PERM_KEYS] : granted;
+  const can = Object.fromEntries(PERM_KEYS.map((k) => [k, permissions.includes(k)])) as Record<PermKey, boolean>;
 
   return {
     id: user.id,
@@ -69,7 +78,9 @@ export const requireUser = cache(async (): Promise<PortalUser> => {
     fullName: profile.full_name,
     role: profile.role,
     isOwner: profile.is_owner,
-    isStaff: profile.role === 'admin' || profile.role === 'super_admin',
+    isStaff,
+    permissions,
+    can,
     agent: agent
       ? {
           id: agent.id,
@@ -87,6 +98,14 @@ export const requireUser = cache(async (): Promise<PortalUser> => {
   };
 });
 
+/** Pages and actions that need a permission: anyone without it goes back to their dashboard. */
+export async function requirePerm(p: PermKey) {
+  const me = await requireUser();
+  if (!me.can[p]) redirect('/portal');
+  return me;
+}
+
+/** Admin-only (roles, permissions, suspending, WordPress import). */
 export async function requireStaff() {
   const me = await requireUser();
   if (!me.isStaff) redirect('/portal');

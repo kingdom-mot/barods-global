@@ -22,14 +22,14 @@ export default async function Dashboard() {
   ]);
 
   // Staff can read every listing; the dashboard counts only their own unless they're staff.
-  const own = (listings ?? []).filter((l) => me.isStaff || l.agent_id === me.agent?.id);
+  const own = (listings ?? []).filter((l) => me.can.listings || l.agent_id === me.agent?.id);
   const count = (s: string) => own.filter((l) => l.status === s).length;
   const sentBack = own.filter((l) => l.status === 'sent_back');
   const firstName = (me.agent?.fullName ?? me.fullName).replace(/^ESV\s+/, '').split(' ')[0];
 
   const tiles = [
     { label: 'Live on the website', value: count('published'), href: '/portal/listings?status=published' },
-    { label: me.isStaff ? 'Waiting for your approval' : 'Awaiting approval', value: count('pending_review'), href: me.isStaff ? '/portal/approvals' : '/portal/listings?status=pending_review' },
+    { label: me.can.listings ? 'Waiting for your approval' : 'Awaiting approval', value: count('pending_review'), href: me.can.listings ? '/portal/approvals' : '/portal/listings?status=pending_review' },
     { label: 'Drafts', value: count('draft'), href: '/portal/listings?status=draft' },
     { label: 'Sent back to fix', value: count('sent_back'), href: '/portal/listings?status=sent_back' },
   ];
