@@ -32,9 +32,9 @@ export const DEFAULTS = {
   socials: {} as Socials,
   hero: {
     eyebrow: 'Real Estate and Construction',
-    title: 'Welcome To Barods Global Limited',
+    title: 'Your No. 1 Choice for Real Estate in Abeokuta & Beyond',
     subtitle:
-      'Whether you’re buying your first home, selling property, investing in real estate, or building from the ground up, Barods is your trusted partner for excellence, innovation, and lasting value.',
+      'Helping Nigerians at home and abroad buy property, invest wisely, and build with confidence. As an award-winning real estate brand rooted in Abeokuta, Barods Global delivers personalised property solutions, local market expertise, and dedicated support for your real estate journey — wherever you are in the world.',
     image: '/wp-content/uploads/2025/08/1-584x438.png',
   } as Hero,
   mortgage: {

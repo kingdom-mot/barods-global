@@ -42,8 +42,8 @@ export default async function HomePage() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-ink/75 via-brand-ink/55 to-brand-ink/80" />
         <div className="container-site py-20 text-center sm:py-28">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-brand-green">{hero.eyebrow}</p>
-          <h1 className="font-display text-4xl text-white sm:text-6xl">{hero.title}</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base text-white/85 sm:text-lg">
+          <h1 className="mx-auto max-w-4xl text-balance font-display text-3xl leading-tight text-white sm:text-4xl lg:text-[44px]">{hero.title}</h1>
+          <p className="mx-auto mt-5 max-w-[1040px] text-pretty text-base leading-relaxed text-white/85 sm:text-[17px]">
             {hero.subtitle}
           </p>
           <div className="mx-auto mt-10 max-w-5xl">
