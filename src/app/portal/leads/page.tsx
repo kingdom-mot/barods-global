@@ -77,7 +77,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
                     {l.email && <a href={`mailto:${l.email}`} className="rounded-md border border-line px-3 py-1.5 font-semibold hover:border-brand-green">Email</a>}
                   </div>
                 </div>
-                <LeadRow id={l.id} status={l.status} note={l.internal_note} />
+                <LeadRow id={l.id} status={l.status} note={l.internal_note} canDelete={me.isStaff} name={l.name} />
               </li>
             );
           })}

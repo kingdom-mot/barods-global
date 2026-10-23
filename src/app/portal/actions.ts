@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient, requirePerm, requireUser } from '@/lib/supabase/server';
+import { createClient, requirePerm, requireStaff, requireUser } from '@/lib/supabase/server';
 import { sendNotice, SITE } from '@/lib/email';
 import { pingIndexNow } from '@/lib/indexnow';
 import { adminClient } from '@/lib/supabase/admin';
@@ -285,6 +285,18 @@ export async function reviewListing(id: string, decision: 'approve' | 'send_back
     console.error('[reviewListing]', e);
     return { ok: false, error: 'Something went wrong while saving. Please try again.' };
   }
+}
+
+/** Admins only: remove a lead and everything in it for good (e.g. spam, or a person asking to be erased). */
+export async function deleteLead(id: string) {
+  const me = await requireStaff();
+  const supabase = createClient();
+  const { data, error } = await supabase.from('leads').delete().eq('id', id).select('id, source');
+  if (error || !data?.length) return { ok: false as const, error: `Couldn’t delete this lead${error ? `: ${error.message}` : '.'}` };
+  // The log records that a lead was deleted, not who it was, so no personal details are kept.
+  await supabase.from('activity_log').insert({ actor: me.id, action: `deleted a lead (${data[0].source})`, entity: 'lead', entity_id: id });
+  revalidatePath('/portal', 'layout');
+  return { ok: true as const };
 }
 
 export async function updateLead(id: string, status: string, note: string) {

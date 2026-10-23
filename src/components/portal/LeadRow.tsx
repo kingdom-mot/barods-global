@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { updateLead } from '@/app/portal/actions';
+import { useRouter } from 'next/navigation';
+import { deleteLead, updateLead } from '@/app/portal/actions';
 import { LEAD_STATUS } from '@/lib/leads';
 
 
-export default function LeadRow({ id, status, note }: { id: string; status: string; note: string | null }) {
+export default function LeadRow({ id, status, note, canDelete = false, name = 'this lead' }: { id: string; status: string; note: string | null; canDelete?: boolean; name?: string }) {
+  const router = useRouter();
   const [s, setS] = useState(status);
   const [n, setN] = useState(note ?? '');
   const [saved, setSaved] = useState(false);
@@ -35,6 +37,23 @@ export default function LeadRow({ id, status, note }: { id: string; status: stri
       <label className="sr-only" htmlFor={`ln-${id}`}>Private note</label>
       <textarea id={`ln-${id}`} className="field text-sm" rows={2} placeholder="Private note (only Barods sees this)" value={n} onChange={(e) => setN(e.target.value)} onBlur={() => n !== (note ?? '') && save()} />
       <span className="h-4 text-xs text-brand-greenDark" aria-live="polite">{pending ? 'Saving…' : saved ? 'Saved' : ''}</span>
+      {canDelete && (
+        <button
+          type="button"
+          disabled={pending}
+          className="self-start rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+          onClick={() => {
+            if (!confirm(`Delete the lead from ${name} forever? Their details, message and notes are removed and can’t be recovered.`)) return;
+            start(async () => {
+              const r = await deleteLead(id);
+              if (!r.ok) alert(r.error);
+              router.refresh();
+            });
+          }}
+        >
+          Delete lead
+        </button>
+      )}
     </div>
   );
 }
