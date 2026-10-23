@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { inviteAgentCard, inviteMember, removeMember, resendAccess, setPermissions, setRole, setSuspended, setVerified } from '@/app/portal/admin-actions';
+import { inviteAgentCard, inviteMember, linkAgentCard, removeMember, resendAccess, setPermissions, setRole, setSuspended, setVerified } from '@/app/portal/admin-actions';
 import { PERMISSIONS, type PermKey } from '@/lib/permissions';
 
 type Msg = { ok: boolean; text: string } | null;
@@ -216,6 +216,47 @@ export function PermissionsEditor({ profileId, name, initial }: { profileId: str
           <Note msg={msg} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Join a login to the website card that's really theirs (moves listings and leads, removes the extra card). */
+export function LinkCardControl({ profileId, name, cards, hidden }: { profileId: string; name: string; cards: { id: string; name: string }[]; hidden: boolean }) {
+  const router = useRouter();
+  const [cardId, setCardId] = useState('');
+  const [msg, setMsg] = useState<Msg>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className={`w-full rounded-lg p-3 text-sm ${hidden ? 'bg-amber-50' : 'bg-paper'}`}>
+      {hidden && (
+        <p className="mb-2 text-amber-900">
+          {name}’s card isn’t on the website yet, so their listings won’t show on a public profile. If they already have a card on the website, link it here.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor={`card-${profileId}`}>Website card</label>
+        <select id={`card-${profileId}`} className="field h-9 max-w-xs py-1 text-sm" value={cardId} onChange={(e) => setCardId(e.target.value)}>
+          <option value="">Link to an existing website card…</option>
+          {cards.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button
+          type="button"
+          className="btn-green min-h-[36px] px-4 text-xs"
+          disabled={!cardId || pending}
+          onClick={() => {
+            const card = cards.find((c) => c.id === cardId);
+            if (!card || !confirm(`Link ${name}’s login to the “${card.name}” website card? Their listings and leads move to that card.`)) return;
+            start(async () => {
+              const r = await linkAgentCard(profileId, cardId);
+              setMsg(r.ok ? { ok: true, text: r.message ?? 'Linked.' } : { ok: false, text: r.error });
+              router.refresh();
+            });
+          }}
+        >
+          {pending ? 'Linking…' : 'Link'}
+        </button>
+      </div>
+      <Note msg={msg} />
     </div>
   );
 }

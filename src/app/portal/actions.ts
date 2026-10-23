@@ -219,23 +219,34 @@ export async function setAvailability(id: string, availability: 'available' | 'u
   return error ? { ok: false as const, error: 'Couldn’t update this listing.' } : { ok: true as const };
 }
 
-export async function reviewListing(id: string, decision: 'approve' | 'send_back', note: string) {
+/** Emails and search-engine pings after a save: run together and capped, so the save itself never times out. */
+async function followUps(tasks: Promise<unknown>[], ms = 6000) {
+  await Promise.race([Promise.allSettled(tasks), new Promise((r) => setTimeout(r, ms))]);
+}
+
+export async function reviewListing(id: string, decision: 'approve' | 'send_back', note: string): Promise<{ ok: true; message?: string } | { ok: false; error: string }> {
   await requirePerm('listings');
-  const supabase = createClient();
-  const update =
-    decision === 'approve'
-      ? { status: 'published', published_at: new Date().toISOString(), review_note: null }
-      : { status: 'sent_back', review_note: note.trim().slice(0, 1000) || 'Please review and update this listing.' };
-  const { error } = await supabase.from('properties').update(update).eq('id', id);
-  if (!error) {
-    await quietly(
-      (async () => {
-        const { data: p } = await adminClient().from('properties').select('title, ref, slug, agents(full_name, email)').eq('id', id).maybeSingle();
-        if (p && decision === 'approve') await pingIndexNow([`/property/${p.slug}`, '/properties']);
-        const agent = p?.agents as unknown as { full_name: string; email: string | null } | null;
-        if (!p || !agent?.email) return;
-        const first = agent.full_name.split(' ')[0];
-        await sendNotice(
+  try {
+    const supabase = createClient();
+    const update =
+      decision === 'approve'
+        ? { status: 'published', published_at: new Date().toISOString(), review_note: null }
+        : { status: 'sent_back', review_note: note.trim().slice(0, 1000) || 'Please review and update this listing.' };
+    const { data: saved, error } = await supabase.from('properties').update(update).eq('id', id).select('id').maybeSingle();
+    if (error) {
+      console.error('[reviewListing]', error);
+      return { ok: false, error: `Couldn’t update this listing: ${error.message}` };
+    }
+    if (!saved) return { ok: false, error: 'Couldn’t update this listing. It may have been deleted or already reviewed. Refresh the page.' };
+
+    const { data: p } = await adminClient().from('properties').select('title, ref, slug, agents(full_name, email, status)').eq('id', id).maybeSingle();
+    const agent = p?.agents as unknown as { full_name: string; email: string | null; status: string } | null;
+    const first = agent?.full_name.replace(/^ESV\s+/, '').split(' ')[0] ?? '';
+    const tasks: Promise<unknown>[] = [];
+    if (p && decision === 'approve') tasks.push(pingIndexNow([`/property/${p.slug}`, '/properties']));
+    if (p && agent?.email) {
+      tasks.push(
+        sendNotice(
           decision === 'approve'
             ? {
                 to: [agent.email],
@@ -251,12 +262,22 @@ export async function reviewListing(id: string, decision: 'approve' | 'send_back
                 lines: [`Hi ${first},`, `“${p.title}” was sent back with this note:`, String(update.review_note), 'Make the changes and send it for review again.'],
                 button: { label: 'Edit the listing', href: `${SITE}/portal/listings/${id}` },
               },
-        );
-      })(),
-    );
+        ).catch((e) => console.warn('[listing email]', e)),
+      );
+    }
+    await followUps(tasks);
+    revalidatePath('/', 'layout');
+
+    // A listing on a hidden agent card is live, but won't appear on any public agent profile.
+    const warning =
+      decision === 'approve' && agent && agent.status !== 'active'
+        ? ` Note: ${agent.full_name}’s agent card isn’t public yet, so this listing won’t show on an agent profile. Fix it under Agents and permissions.`
+        : '';
+    return { ok: true, message: (decision === 'approve' ? 'Approved and live on the website.' : 'Sent back to the agent.') + warning };
+  } catch (e) {
+    console.error('[reviewListing]', e);
+    return { ok: false, error: 'Something went wrong while saving. Please try again.' };
   }
-  revalidatePath('/portal', 'layout');
-  return error ? { ok: false as const, error: 'Couldn’t update this listing.' } : { ok: true as const };
 }
 
 export async function updateLead(id: string, status: string, note: string) {
