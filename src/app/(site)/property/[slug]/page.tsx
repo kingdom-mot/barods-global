@@ -4,6 +4,7 @@ import JsonLd from '@/components/JsonLd';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
+import { youTubeEmbed } from '@/lib/video';
 import { SITE } from '@/lib/email';
 import MortgageCalculator from '@/components/MortgageCalculator';
 import PropertyCard, { statusBadge } from '@/components/PropertyCard';
@@ -41,10 +42,6 @@ function Block({ id, title, children }: { id: string; title: string; children: R
   );
 }
 
-function youTubeEmbed(url: string) {
-  const m = url.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
-}
 
 export default async function PropertyPage({ params }: Props) {
   const p = await getProperty(params.slug);
@@ -292,7 +289,17 @@ export default async function PropertyPage({ params }: Props) {
           {p.videoUrl && (
             <Block id="video" title="Video">
               {video ? (
-                <iframe src={video} title={`${p.title} video`} className="aspect-video w-full rounded-lg" allowFullScreen loading="lazy" />
+                <div className={video.vertical ? 'mx-auto w-full max-w-[360px]' : ''}>
+                  <iframe
+                    src={video.src}
+                    title={`${p.title} video`}
+                    className={`w-full rounded-lg bg-black ${video.vertical ? 'aspect-[9/16]' : 'aspect-video'}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
               ) : (
                 <a href={p.videoUrl} target="_blank" rel="noopener noreferrer" className="btn-outline">Watch the video</a>
               )}

@@ -28,6 +28,7 @@ import {
   ZA_DEPOSIT,
   ZA_LEASE,
 } from '@/lib/listingOptions';
+import { youTubeEmbed } from '@/lib/video';
 import { createClient } from '@/lib/supabase/browser';
 
 type Ref = { id: string; name: string };
@@ -112,6 +113,81 @@ function Select({ label, value, onChange, options, placeholder = 'Select…', re
       </select>
       {hint && <span className="text-[11px] font-normal normal-case tracking-normal">{hint}</span>}
     </label>
+  );
+}
+
+const LAND_UNITS = ['sqm', 'plots', 'acres', 'hectares'] as const;
+const OTHER = '__other';
+
+/** Land size: the usual sizes, or "Other" to type an exact size (amount + unit). */
+function LandSizeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const listed = LAND_SIZES.some(([v]) => v === value);
+  const [other, setOther] = useState(Boolean(value) && !listed);
+  // An existing custom size such as "1,350 sqm" opens straight into the Other boxes.
+  const parsed = value.match(/^([\d.,]+)\s*(sqm|plots?|acres?|hectares?)$/i);
+  const [amount, setAmount] = useState(other && parsed ? parsed[1] : other ? value : '');
+  const [unit, setUnit] = useState<string>(() => {
+    const u = parsed?.[2]?.toLowerCase() ?? 'sqm';
+    return LAND_UNITS.find((x) => x.startsWith(u.replace(/s$/, ''))) ?? 'sqm';
+  });
+  const push = (a: string, u: string) => {
+    const n = a.trim();
+    onChange(n ? (/^[\d.,]+$/.test(n) ? `${n} ${u === 'plots' && n === '1' ? 'plot' : u === 'acres' && n === '1' ? 'acre' : u === 'hectares' && n === '1' ? 'hectare' : u}` : n) : '');
+  };
+  return (
+    <div className="space-y-2">
+      <label className="label">
+        <span>{label}</span>
+        <select
+          className="field"
+          value={other ? OTHER : value}
+          onChange={(e) => {
+            if (e.target.value === OTHER) {
+              setOther(true);
+              onChange('');
+            } else {
+              setOther(false);
+              setAmount('');
+              onChange(e.target.value);
+            }
+          }}
+        >
+          <option value="">Select…</option>
+          {LAND_SIZES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <option value={OTHER}>Other (type the size)</option>
+        </select>
+      </label>
+      {other && (
+        <div className="flex gap-2">
+          <label className="sr-only" htmlFor="land-other-amount">Land size amount</label>
+          <input
+            id="land-other-amount"
+            className="field"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              push(e.target.value, unit);
+            }}
+            placeholder="e.g. 750"
+            maxLength={20}
+            autoFocus
+          />
+          <label className="sr-only" htmlFor="land-other-unit">Unit</label>
+          <select
+            id="land-other-unit"
+            className="field w-36 shrink-0"
+            value={unit}
+            onChange={(e) => {
+              setUnit(e.target.value);
+              push(amount, e.target.value);
+            }}
+          >
+            {LAND_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -386,7 +462,7 @@ export default function ListingForm({ userId, isStaff, lookups, initial = {} }: 
         {step === 2 && (
           <div className="grid gap-5 sm:grid-cols-2">
             {isLand ? (
-              <Select label="Land size" value={f.landSize} onChange={set('landSize')} options={LAND_SIZES} />
+              <LandSizeField label="Land size" value={f.landSize} onChange={set('landSize')} />
             ) : (
               <>
                 {!isCommercial && <Select label="Bedrooms" value={f.bedrooms} onChange={set('bedrooms')} options={COUNT_OPTIONS} />}
@@ -394,7 +470,7 @@ export default function ListingForm({ userId, isStaff, lookups, initial = {} }: 
                 <Select label="Toilets" value={f.toilets} onChange={set('toilets')} options={COUNT_OPTIONS} />
                 <Select label="Parking spaces" value={f.parking} onChange={set('parking')} options={COUNT_OPTIONS} />
                 <Select label="Floor size" value={f.floorSizeSqm} onChange={set('floorSizeSqm')} options={FLOOR_SIZES} />
-                <Select label="Land size (if known)" value={f.landSize} onChange={set('landSize')} options={LAND_SIZES} />
+                <LandSizeField label="Land size (if known)" value={f.landSize} onChange={set('landSize')} />
                 <Select label="Furnishing" value={f.furnishing} onChange={set('furnishing')} options={FURNISHING} />
                 <Select label="Serviced (power, water, cleaning)" value={f.serviced} onChange={set('serviced')} options={YES_NO} />
                 {!isCommercial && <Select label="Boys’ quarters (BQ)" value={f.hasBq} onChange={set('hasBq')} options={YES_NO} />}
@@ -542,7 +618,14 @@ export default function ListingForm({ userId, isStaff, lookups, initial = {} }: 
             )}
             <label className="label">
               Video link (optional)
-              <input className="field" type="url" value={f.videoUrl} onChange={(e) => set('videoUrl')(e.target.value)} placeholder="YouTube or Instagram link" />
+              <input className="field" type="url" value={f.videoUrl} onChange={(e) => set('videoUrl')(e.target.value)} placeholder="Paste any YouTube link (video, Shorts or youtu.be)" />
+              {f.videoUrl.trim() && (
+                youTubeEmbed(f.videoUrl) ? (
+                  <span className="text-[12px] font-semibold normal-case tracking-normal text-brand-greenDark">✓ This video will play on the listing page.</span>
+                ) : (
+                  <span className="text-[12px] font-normal normal-case tracking-normal text-amber-800">This isn’t a YouTube video link, so visitors will see a “Watch the video” button instead of the player.</span>
+                )
+              )}
             </label>
           </>
         )}

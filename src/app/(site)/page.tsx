@@ -58,7 +58,14 @@ export default async function HomePage() {
           <h2 className="section-title">Discover Our Featured Properties</h2>
           <p className="section-sub">Hand-picked homes and land from the Barods team</p>
         </div>
-        <div className="grid grid-cols-1 justify-center gap-5 sm:grid-cols-[repeat(auto-fit,minmax(250px,280px))]">
+        {/* Three across, edge to edge with the other sections; a short row (1–2 listings) is centred */}
+        <div
+          className={
+            featured.length >= 3
+              ? 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'
+              : 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-auto lg:max-w-[calc((100%-3rem)*2/3+1.5rem)]'
+          }
+        >
           {featured.map((p) => (
             <PropertyCard key={p.ref} property={p} agent={agentBySlug.get(p.agentSlug)} currency={currency} />
           ))}

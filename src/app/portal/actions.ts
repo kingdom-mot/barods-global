@@ -119,7 +119,7 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
     toilets: input.toilets,
     parking: input.parking,
     floor_size_sqm: input.floorSizeSqm,
-    land_size: input.landSize,
+    land_size: input.landSize?.trim().slice(0, 40) || null,
     condition: input.condition,
     furnishing: input.furnishing,
     serviced: input.serviced,
