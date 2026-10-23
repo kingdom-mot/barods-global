@@ -55,9 +55,6 @@ export default function ListingRowActions({
             <option value="">No label</option>
             {LABELS.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
-          <button type="button" disabled={pending} onClick={() => flags({ archived: true }, 'Archive this listing? It disappears from the website but stays here; you can restore it any time.')} className="rounded-md px-2 py-1.5 text-xs font-semibold text-muted hover:bg-paper hover:text-brand-ink">
-            Archive
-          </button>
         </>
       )}
       {isStaff && status === 'archived' && (
@@ -87,19 +84,44 @@ export default function ListingRowActions({
           <option value={closed}>{closed === 'sold' ? 'Sold' : 'Let'}</option>
         </select>
       )}
-      {(status === 'draft' || status === 'sent_back') && (
+      {isStaff && status !== 'archived' && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            flags(
+              { archived: true },
+              status === 'published'
+                ? 'Archive this listing? It comes off the website but stays here, and you can restore it any time.'
+                : 'Archive this listing? It moves to Archived, and you can restore it any time.',
+            )
+          }
+          className="rounded-md border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-brand-ink hover:text-brand-ink"
+        >
+          Archive
+        </button>
+      )}
+      {(isStaff || status === 'draft' || status === 'sent_back') && (
         <button
           type="button"
           disabled={pending}
           onClick={() => {
-            if (!confirm('Delete this listing? This can’t be undone.')) return;
+            const live = status === 'published';
+            if (
+              !confirm(
+                live
+                  ? 'Delete this live listing permanently? It disappears from the website and can’t be restored. (Archive instead if you might need it again.) Enquiries about it stay in Leads.'
+                  : 'Delete this listing permanently? This can’t be undone. Enquiries about it stay in Leads.',
+              )
+            )
+              return;
             start(async () => {
               const r = await deleteListing(id);
               if (!r.ok) alert(r.error);
               router.refresh();
             });
           }}
-          className="rounded-md px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+          className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
         >
           Delete
         </button>

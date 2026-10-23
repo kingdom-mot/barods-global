@@ -150,11 +150,18 @@ export async function setListingFlags(id: string, flags: { featured?: boolean; l
   const update: Record<string, unknown> = {};
   if (flags.featured !== undefined) update.featured = flags.featured;
   if (flags.label !== undefined) update.label = flags.label || null;
-  if (flags.archived !== undefined) update.status = flags.archived ? 'archived' : 'published';
+  if (flags.archived !== undefined) {
+    if (flags.archived) update.status = 'archived';
+    else {
+      // Restoring puts a listing back where it was: live if it had been published before, otherwise a draft.
+      const { data: cur } = await createClient().from('properties').select('published_at').eq('id', id).maybeSingle();
+      update.status = cur?.published_at ? 'published' : 'draft';
+    }
+  }
   const { error } = await createClient().from('properties').update(update).eq('id', id);
   if (error) return { ok: false, error: error.message };
   await log(`listing ${Object.keys(flags).join(', ')} changed`, 'property', id);
-  revalidatePath('/portal/listings');
+  revalidatePath('/', 'layout');
   return { ok: true };
 }
 

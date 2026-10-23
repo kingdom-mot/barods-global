@@ -205,11 +205,18 @@ export async function saveListing(input: ListingInput, intent: 'draft' | 'submit
   return { ok: true, id: id!, ref };
 }
 
+/** Agents can delete their own drafts and sent-back listings; admins (Manage all listings) can delete any listing. */
 export async function deleteListing(id: string) {
-  await requireUser();
-  const { error } = await createClient().from('properties').delete().eq('id', id);
-  revalidatePath('/portal', 'layout');
-  return error ? { ok: false as const, error: 'Only drafts and listings sent back can be deleted.' } : { ok: true as const };
+  const me = await requireUser();
+  const supabase = createClient();
+  const { data: before } = await supabase.from('properties').select('ref, title').eq('id', id).maybeSingle();
+  const { data, error } = await supabase.from('properties').delete().eq('id', id).select('id');
+  if (error || !data?.length) {
+    return { ok: false as const, error: me.can.listings ? `Couldn’t delete this listing${error ? `: ${error.message}` : '.'}` : 'Only drafts and listings sent back can be deleted.' };
+  }
+  await supabase.from('activity_log').insert({ actor: me.id, action: `deleted listing ${before?.ref ?? ''} ${before?.title ?? ''}`.trim(), entity: 'property', entity_id: id });
+  revalidatePath('/', 'layout');
+  return { ok: true as const };
 }
 
 export async function setAvailability(id: string, availability: 'available' | 'under_offer' | 'sold' | 'let') {
