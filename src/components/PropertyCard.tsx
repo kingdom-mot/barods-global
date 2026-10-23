@@ -69,12 +69,12 @@ export default function PropertyCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-1 px-3.5 pb-3.5 pt-7">
-        <div className="text-lg font-extrabold text-brand-greenDark">{price.main}</div>
-        {price.original && <div className="-mt-1 text-xs text-muted">{price.original}</div>}
         <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug">
           <Link href={href} className="hover:text-brand-greenDark">{p.title}</Link>
         </h3>
         <p className="truncate text-[13px] text-muted">{place}</p>
+        <div className="mt-1 text-lg font-extrabold text-brand-greenDark">{price.main}</div>
+        {price.original && <div className="-mt-1 text-xs text-muted">{price.original}</div>}
         <div className="mb-2.5 mt-1.5"><SpecIcons property={p} /></div>
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-2.5 text-xs text-muted">
           <span className="truncate">{agent?.fullName ?? 'Barods Global'}</span>
