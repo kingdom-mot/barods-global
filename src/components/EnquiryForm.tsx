@@ -67,7 +67,7 @@ export default function EnquiryForm({
       )}
       <label className="label">
         Message
-        <textarea name="message" rows={4} defaultValue={defaultMessage} className="field" />
+        <textarea name="message" rows={defaultMessage ? 9 : 4} defaultValue={defaultMessage} className="field" />
       </label>
       {allowViewing && (
         <label className="flex items-center gap-2 text-sm">

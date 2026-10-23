@@ -4,6 +4,7 @@ import JsonLd from '@/components/JsonLd';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
+import { SITE } from '@/lib/email';
 import MortgageCalculator from '@/components/MortgageCalculator';
 import PropertyCard, { statusBadge } from '@/components/PropertyCard';
 import PropertyGallery from '@/components/PropertyGallery';
@@ -67,7 +68,9 @@ export default async function PropertyPage({ params }: Props) {
     .filter(Boolean)
     .join(', ');
   const mapQuery = [p.address ?? p.area, p.city, p.state, COUNTRY[p.countryCode]].filter(Boolean).join(', ');
-  const whatsappText = encodeURIComponent(`Hello, I'm interested in ${p.title} (${p.ref}) on barodsglobal.com`);
+  // Same opening message for the form and WhatsApp, with the listing link and ID so the agent knows exactly which one.
+  const enquiryText = `Hi, I will like to get more information on this property you listed on Barods Global website: ${p.title} (${p.ref}) ${SITE}/property/${p.slug}\n\nIs it still available?`;
+  const whatsappText = encodeURIComponent(enquiryText);
   const whatsappNumber = waNumber(agent?.whatsapp || agent?.phone || contact.whatsapp);
   const isLand = /land|plot/i.test(p.typeName);
   const sizeSqm = p.floorSizeSqm ?? (p.landSize ? Number(p.landSize.replace(/[^0-9.]/g, '')) || undefined : undefined);
@@ -354,7 +357,7 @@ export default async function PropertyPage({ params }: Props) {
             <EnquiryForm
               propertyRef={p.ref}
               agentSlug={agent?.slug}
-              defaultMessage={`Hello, I am interested in ${p.title} (${p.ref}).`}
+              defaultMessage={enquiryText}
               askRole
             />
           </div>
