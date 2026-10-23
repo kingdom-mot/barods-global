@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import { sendInviteEmail } from '@/lib/email';
+import { sendInviteEmail, sendNotice, SITE } from '@/lib/email';
 import { adminClient } from '@/lib/supabase/admin';
 import { isPermKey, PERMISSIONS, type PermKey } from '@/lib/permissions';
 import { createClient, requirePerm, requireStaff, requireUser } from '@/lib/supabase/server';
@@ -175,51 +175,27 @@ export async function setPermissions(profileId: string, permissions: PermKey[]):
   return { ok: true, message: clean.length ? `Saved. ${target.full_name.split(' ')[0]} can now also: ${names}.` : 'Saved. Own listings, leads and profile only.' };
 }
 
-/**
- * Someone signed up with a different email from the one on their website card (e.g. imported from WordPress),
- * so they got a second, hidden card. This joins their login to the right card: their listings and leads move
- * across, details they filled in are kept where the website card has none, and the extra card is removed.
- */
-export async function linkAgentCard(profileId: string, cardId: string): Promise<Result> {
-  const me = await requireStaff();
+/** New agents appear on the website only once an admin approves their completed profile. */
+export async function approveAgent(agentId: string): Promise<Result> {
+  await requirePerm('team');
   const admin = adminClient();
-  const [{ data: profile }, { data: target }, { data: current }] = await Promise.all([
-    admin.from('profiles').select('id, email, full_name, is_owner').eq('id', profileId).maybeSingle(),
-    admin.from('agents').select('*').eq('id', cardId).maybeSingle(),
-    admin.from('agents').select('*').eq('profile_id', profileId).maybeSingle(),
-  ]);
-  if (!profile) return { ok: false, error: 'Account not found.' };
-  if (!target) return { ok: false, error: 'Website card not found.' };
-  if (target.profile_id) return { ok: false, error: 'That card is already linked to another login.' };
-
-  if (current && current.id !== target.id) {
-    const moved = await Promise.all([
-      admin.from('properties').update({ agent_id: target.id }).eq('agent_id', current.id),
-      admin.from('leads').update({ agent_id: target.id }).eq('agent_id', current.id),
-    ]);
-    const failed = moved.find((r) => r.error);
-    if (failed?.error) return { ok: false, error: failed.error.message };
-    await admin.from('agents').update({ profile_id: null }).eq('id', current.id);
-  }
-  const keep = (a: unknown, b: unknown) => (a === null || a === undefined || a === '' ? b : a);
-  const { error } = await admin
-    .from('agents')
-    .update({
-      profile_id: profileId,
-      email: profile.email,
-      status: 'active',
-      phone: keep(target.phone, current?.phone),
-      whatsapp: keep(target.whatsapp, current?.whatsapp),
-      photo_url: keep(target.photo_url, current?.photo_url),
-      bio: keep(target.bio, current?.bio),
-      position: keep(target.position, current?.position),
-      ...('service_areas' in target ? { service_areas: keep(target.service_areas, current?.service_areas) } : {}),
-    })
-    .eq('id', target.id);
+  const { data: a } = await admin.from('agents').select('full_name, email, phone, photo_url, status, slug').eq('id', agentId).maybeSingle();
+  if (!a) return { ok: false, error: 'Agent not found.' };
+  if (a.status === 'suspended') return { ok: false, error: 'This agent is suspended. Reactivate them first.' };
+  const { error } = await admin.from('agents').update({ status: 'active' }).eq('id', agentId);
   if (error) return { ok: false, error: error.message };
-  if (current && current.id !== target.id) await admin.from('agents').delete().eq('id', current.id);
-
-  await log(`linked ${profile.email} to card ${target.full_name}`, 'agent', target.id);
+  await log(`approved agent ${a.full_name}`, 'agent', agentId);
+  const first = a.full_name.replace(/^ESV\s+/, '').split(' ')[0];
+  await Promise.race([
+    sendNotice({
+      to: [a.email],
+      subject: 'Your Barods Global profile is live',
+      heading: 'You’re on the website',
+      lines: [`Hi ${first},`, 'Your agent profile has been approved and now appears on the Barods Global website. Your approved listings show on it too.'],
+      button: { label: 'View my profile', href: `${SITE}/agent/${a.slug}` },
+    }).catch(() => undefined),
+    new Promise((r) => setTimeout(r, 6000)),
+  ]);
   revalidatePath('/', 'layout');
-  return { ok: true, message: `Linked. ${target.full_name}’s listings and leads are now on their public profile.` };
+  return { ok: true, message: `${a.full_name} is approved and now on the website.` };
 }

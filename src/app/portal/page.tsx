@@ -44,13 +44,18 @@ export default async function Dashboard() {
         <Link href="/portal/listings/new" className="btn-green px-6">+ Add a listing</Link>
       </div>
 
-      {me.agent?.status === 'invited' && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <strong>Finish your profile.</strong> Add your photo and phone number so buyers can see who they’re talking to.
-          Your card appears on the Agents page once it’s complete.{' '}
-          <Link href="/portal/profile" className="font-semibold underline">Complete my profile →</Link>
-        </div>
-      )}
+      {me.agent?.status === 'invited' &&
+        (me.agent.phone && me.agent.photoUrl ? (
+          <div className="mb-6 rounded-xl border border-brand-green/30 bg-brand-greenLight p-4 text-sm text-brand-greenDark">
+            <strong>Your profile is with an admin for approval.</strong> Once approved, your card appears on the Agents page. You can add listings in the meantime.
+          </div>
+        ) : (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <strong>Finish your profile.</strong> Add your photo and phone number so buyers can see who they’re talking to.
+            Once it’s complete, an admin approves it and your card appears on the Agents page.{' '}
+            <Link href="/portal/profile" className="font-semibold underline">Complete my profile →</Link>
+          </div>
+        ))}
 
       {sentBack.length > 0 && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">

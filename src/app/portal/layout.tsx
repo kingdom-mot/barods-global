@@ -10,10 +10,14 @@ const ROLE_LABEL = { super_admin: 'Owner · Super admin', admin: 'Admin', agent:
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const me = await requireUser();
   const supabase = createClient();
-  const [{ count: newLeads }, { count: pending }] = await Promise.all([
+  const [{ count: newLeads }, { count: pending }, { count: newAgents }] = await Promise.all([
     supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'new'),
     me.can.listings
       ? supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'pending_review')
+      : Promise.resolve({ count: 0 }),
+    // New agents who have finished their profile and are waiting for approval.
+    me.can.team
+      ? supabase.from('agents').select('id', { count: 'exact', head: true }).eq('status', 'invited').not('profile_id', 'is', null).not('phone', 'is', null).not('photo_url', 'is', null)
       : Promise.resolve({ count: 0 }),
   ]);
 
@@ -24,7 +28,7 @@ export default async function PortalLayout({ children }: { children: React.React
     { href: '/portal/listings', label: me.can.listings ? 'All listings' : 'My listings' },
     { href: '/portal/leads', label: me.can.leads ? 'All leads' : 'My leads', badge: newLeads ?? 0 },
     ...(me.can.listings ? [{ href: '/portal/approvals', label: 'Approvals', badge: pending ?? 0 }] : []),
-    ...(me.can.team ? [{ href: '/portal/team', label: me.isStaff ? 'Agents and permissions' : 'Agents' }] : []),
+    ...(me.can.team ? [{ href: '/portal/team', label: me.isStaff ? 'Agents and permissions' : 'Agents', badge: newAgents ?? 0 }] : []),
     ...(me.can.blog ? [{ href: '/portal/blog', label: 'Blog' }] : []),
     ...(me.can.website ? [{ href: '/portal/site', label: 'Website' }] : []),
     ...(me.can.activity ? [{ href: '/portal/activity', label: 'Activity log' }] : []),

@@ -1073,3 +1073,17 @@ create policy "perm activity" on activity_log for select using (has_perm('activi
 -- Names for the activity log and the agents list.
 drop policy if exists "perm read profiles" on profiles;
 create policy "perm read profiles" on profiles for select using (has_perm('activity') or has_perm('team'));
+
+-- ===== 0010_agent_approval.sql =====
+-- 0010: new agents appear on the website only after an admin approves them.
+-- Agents can edit their own card but can no longer change its status (invited / active / suspended).
+-- Safe to run more than once.
+create or replace function agents_self_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or is_staff() or has_perm('team') then return new; end if;
+  new.slug := old.slug; new.email := old.email; new.profile_id := old.profile_id;
+  new.verified := old.verified; new.listings_need_approval := old.listings_need_approval;
+  new.status := old.status;
+  return new;
+end $$;

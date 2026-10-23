@@ -303,15 +303,34 @@ export async function updateProfile(input: { fullName: string; position: string;
       whatsapp: input.whatsapp.trim().slice(0, 40) || null,
       bio: input.bio.trim().slice(0, 1200) || null,
       photo_url: input.photoUrl,
-      // A completed card goes live on the Agents page.
-      ...(me.agent.status === 'invited' && complete ? { status: 'active' } : {}),
+      // New agents stay off the website until an admin approves them (Agents and permissions).
   };
   const areas = input.serviceAreas.split(',').map((a) => a.trim()).filter(Boolean).join(', ').slice(0, 200) || null;
   let { error } = await createClient().from('agents').update({ ...row, service_areas: areas }).eq('id', me.agent.id);
   // Before migration 0008 the column doesn't exist yet: save everything else.
   if (error?.message.includes('service_areas')) ({ error } = await createClient().from('agents').update(row).eq('id', me.agent.id));
+  if (error) return { ok: false as const, error: 'Couldn’t save your profile.' };
+
+  // First time a new agent's profile is complete: ask the admins to approve them.
+  const wasComplete = Boolean(me.agent.fullName && me.agent.phone && me.agent.photoUrl);
+  const awaiting = me.agent.status === 'invited' && complete;
+  if (awaiting && !wasComplete) {
+    await quietly(
+      (async () => {
+        const to = await staffEmails();
+        if (!to.length) return;
+        await sendNotice({
+          to,
+          subject: `New agent to approve: ${row.full_name}`,
+          heading: 'A new agent is ready for approval',
+          lines: [`${row.full_name} has set up their portal profile.`, 'Check their photo and details, then approve them to show their card on the website.'],
+          button: { label: 'Review new agents', href: `${SITE}/portal/team` },
+        });
+      })(),
+    );
+  }
   revalidatePath('/portal', 'layout');
-  return error ? { ok: false as const, error: 'Couldn’t save your profile.' } : { ok: true as const, activated: me.agent.status === 'invited' && complete };
+  return { ok: true as const, awaitingApproval: awaiting, incomplete: me.agent.status === 'invited' && !complete };
 }
 
 export async function setPassword(password: string) {

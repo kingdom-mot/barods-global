@@ -1,4 +1,4 @@
-import { InviteCardButton, InviteForm, LinkCardControl, MemberActions, PermissionsEditor } from '@/components/portal/TeamControls';
+import { ApproveAgentButton, InviteCardButton, InviteForm, MemberActions, PermissionsEditor } from '@/components/portal/TeamControls';
 import { isPermKey } from '@/lib/permissions';
 import { adminClient } from '@/lib/supabase/admin';
 import { requirePerm } from '@/lib/supabase/server';
@@ -15,7 +15,7 @@ export default async function TeamPage() {
   const admin = adminClient();
   const [{ data: profiles }, { data: agents }, { data: authList }] = await Promise.all([
     admin.from('profiles').select('*').order('created_at'),
-    admin.from('agents').select('id, profile_id, slug, full_name, email, position, photo_url, verified, status'),
+    admin.from('agents').select('id, profile_id, slug, full_name, email, position, photo_url, phone, verified, status'),
     admin.auth.admin.listUsers({ perPage: 500 }),
   ]);
   const authById = new Map((authList?.users ?? []).map((u) => [u.id, u]));
@@ -82,7 +82,11 @@ export default async function TeamPage() {
                       {suspended && <span className="badge bg-red-100 text-red-800">Suspended</span>}
                       {!signedIn && !suspended && <span className="badge bg-amber-100 text-amber-900">Invite pending</span>}
                       {card?.verified && <span className="badge bg-brand-greenLight text-brand-greenDark">Verified</span>}
-                      {p.role === 'agent' && card && card.status !== 'active' && card.status !== 'suspended' && <span className="badge bg-amber-100 text-amber-900">Not on website</span>}
+                      {card?.status === 'invited' && signedIn && (
+                        <span className={`badge ${card.phone && card.photo_url ? 'bg-amber-100 text-amber-900' : 'bg-paper text-muted'}`}>
+                          {card.phone && card.photo_url ? 'Awaiting approval' : 'Setting up profile'}
+                        </span>
+                      )}
                       {p.id === me.id && <span className="text-xs text-muted">(you)</span>}
                     </div>
                     <div className="truncate text-xs text-muted">
@@ -103,8 +107,8 @@ export default async function TeamPage() {
                   isMe={p.id === me.id}
                   canManage={me.isStaff}
                 />
-                {me.isStaff && p.role === 'agent' && cardsWithoutLogin.length > 0 && (card?.status !== 'active' || !card) && (
-                  <LinkCardControl profileId={p.id} name={card?.full_name ?? p.full_name} cards={cardsWithoutLogin.map((c) => ({ id: c.id, name: c.full_name }))} hidden={!card || card.status !== 'active'} />
+                {card?.status === 'invited' && signedIn && (
+                  <ApproveAgentButton agentId={card.id} name={card.full_name} ready={Boolean(card.phone && card.photo_url)} />
                 )}
                 {me.isStaff && p.role === 'agent' && (
                   <PermissionsEditor

@@ -33,7 +33,18 @@ export default function ProfileForm({ userId, initial }: { userId: string; initi
         e.preventDefault();
         start(async () => {
           const r = await updateProfile(v);
-          setMsg(r.ok ? { ok: true, text: r.activated ? 'Saved. Your card is now live on the Agents page.' : 'Saved.' } : { ok: false, text: r.error });
+          setMsg(
+            r.ok
+              ? {
+                  ok: true,
+                  text: r.awaitingApproval
+                    ? 'Saved. An admin will review your profile, then your card appears on the website.'
+                    : r.incomplete
+                      ? 'Saved. Add your photo and phone number to finish your profile.'
+                      : 'Saved.',
+                }
+              : { ok: false, text: r.error },
+          );
           router.refresh();
         });
       }}

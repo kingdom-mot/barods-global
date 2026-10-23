@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import ReviewButtons from '@/components/portal/ReviewButtons';
+import { ApproveAgentButton } from '@/components/portal/TeamControls';
 import { naira } from '@/lib/portalData';
 import { createClient, requirePerm } from '@/lib/supabase/server';
 
@@ -8,7 +9,17 @@ export const metadata = { title: 'Approvals' };
 const PURPOSE = { sale: 'For sale', rent: 'For rent', shortlet: 'Shortlet' } as const;
 
 export default async function ApprovalsPage() {
-  await requirePerm('listings');
+  const me = await requirePerm('listings');
+  const { data: newAgents } = me.can.team
+    ? await createClient()
+        .from('agents')
+        .select('id, full_name, position, phone, photo_url')
+        .eq('status', 'invited')
+        .not('profile_id', 'is', null)
+        .not('phone', 'is', null)
+        .not('photo_url', 'is', null)
+        .order('created_at')
+    : { data: [] };
   const { data: rows } = await createClient()
     .from('properties')
     .select(
@@ -21,6 +32,24 @@ export default async function ApprovalsPage() {
     <div className="mx-auto max-w-5xl">
       <h1 className="mb-2 font-display text-4xl">Approvals</h1>
       <p className="mb-6 text-sm text-muted">Listings agents have submitted. Approve to publish on the website, or send back with a note.</p>
+
+      {(newAgents ?? []).length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 font-semibold">New agents to approve ({newAgents!.length})</h2>
+          <ul className="space-y-3">
+            {newAgents!.map((a) => (
+              <li key={a.id} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:flex-row sm:items-center">
+                <img src={a.photo_url!} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover object-top" />
+                <div className="min-w-0 sm:w-56">
+                  <div className="font-semibold">{a.full_name}</div>
+                  <div className="text-sm text-muted">{a.position ?? 'Agent'} · {a.phone}</div>
+                </div>
+                <div className="min-w-0 flex-1"><ApproveAgentButton agentId={a.id} name={a.full_name} ready /></div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {!rows || rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line bg-white p-10 text-center text-muted">Nothing waiting. You’re all caught up.</p>
