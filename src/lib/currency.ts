@@ -1,5 +1,14 @@
 // Visitor currency: set from Vercel's country header in middleware.ts, ₦ by default.
 // Rates are units of the currency per ₦1 (replaced by the currency_rates table once live).
+/**
+ * Visitor's country from whichever network sits in front of the site:
+ * Vercel, Cloudflare, or a CDN that forwards a country code. Unknown → Nigeria.
+ */
+export function countryFrom(h: { get(name: string): string | null }): string {
+  const c = h.get('x-vercel-ip-country') ?? h.get('cf-ipcountry') ?? h.get('x-country-code') ?? h.get('x-geo-country') ?? '';
+  return /^[A-Z]{2}$/i.test(c) && c.toUpperCase() !== 'XX' ? c.toUpperCase() : 'NG';
+}
+
 export const CURRENCIES = {
   NGN: { symbol: '₦', perNgn: 1, label: 'NGN' },
   ZAR: { symbol: 'R', perNgn: 0.0118, label: 'ZAR' },

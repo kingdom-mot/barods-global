@@ -23,6 +23,8 @@ const OLD_ACCOUNT_PAGES = [
 const r = (source, destination) => ({ source, destination, permanent: true });
 
 const nextConfig = {
+  // Hostinger (and any Node server) runs the self-contained build; Vercel builds its own way.
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'barodsglobal.com' },

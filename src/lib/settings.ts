@@ -59,6 +59,10 @@ const settings = cache(async (): Promise<Record<string, unknown>> => {
   }
 });
 
+/** Barods Global's Google Business listing: the map pin and "Get directions" open this exact place. */
+export const GOOGLE_PLACE_CID = '3979199159802875239';
+export const MAPS_LISTING_URL = `https://maps.google.com/?cid=${GOOGLE_PLACE_CID}`;
+
 export async function getContact(): Promise<Contact> {
   const c = { ...DEFAULTS.contact, ...((await settings()).contact as Partial<Contact>) };
   return { ...c, whatsapp: c.whatsapp || c.phone };

@@ -6,7 +6,7 @@ import type { Agent, Property, TeamMember } from './types';
 const WP = '/wp-content/uploads';
 
 export const contact = {
-  address: 'Suite B104, Providence Mall, Opposite Globus Bank, Leme Abiola Way, Abeokuta',
+  address: 'Suite B104, Providence Mall, M.K.O. Abiola Way, Abeokuta 110118, Ogun State',
   phone: '+234 802 228 8806',
   phoneHref: 'tel:+2348022288806',
   email: 'support@barodsglobal.com',

@@ -23,7 +23,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           image: 'https://barodsglobal.com/brand/logo.png',
           telephone: contact.phone,
           email: contact.email,
-          address: { '@type': 'PostalAddress', streetAddress: contact.address, addressLocality: 'Abeokuta', addressRegion: 'Ogun State', addressCountry: 'NG' },
+          address: { '@type': 'PostalAddress', streetAddress: 'Suite B104, Providence Mall, M.K.O. Abiola Way', addressLocality: 'Abeokuta', postalCode: '110118', addressRegion: 'Ogun State', addressCountry: 'NG' },
+          hasMap: 'https://maps.google.com/?cid=3979199159802875239',
           areaServed: ['Abeokuta', 'Lagos', 'Ibadan', 'Nigeria', 'Johannesburg'],
           sameAs: Object.values(socials).filter(Boolean),
         }}

@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { COUNTRY_TO_CURRENCY } from '@/lib/currency';
+import { COUNTRY_TO_CURRENCY, countryFrom } from '@/lib/currency';
 
 type CookieList = { name: string; value: string; options: CookieOptions }[];
 
@@ -53,7 +53,7 @@ export async function middleware(req: NextRequest) {
   if (isPortal) res.headers.set('Cache-Control', 'private, no-store, max-age=0');
 
   if (!req.cookies.get('currency')) {
-    const country = req.headers.get('x-vercel-ip-country') ?? 'NG';
+    const country = countryFrom(req.headers);
     res.cookies.set('currency', COUNTRY_TO_CURRENCY[country] ?? 'NGN', { path: '/', maxAge: 60 * 60 * 24 * 180 });
   }
   return res;

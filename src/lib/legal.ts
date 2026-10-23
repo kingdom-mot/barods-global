@@ -5,7 +5,7 @@
 export type LegalSection = { id: string; heading: string; blocks: (string | string[])[] };
 export type LegalDoc = { title: string; subtitle: string; updated: string; sections: LegalSection[] };
 
-const ADDRESS = 'Suite B104, Providence Mall, Opposite Globus Bank, Leme Abiola Way, Abeokuta, Ogun State, Nigeria';
+const ADDRESS = 'Suite B104, Providence Mall, M.K.O. Abiola Way, Abeokuta 110118, Ogun State, Nigeria';
 const UPDATED = '20 October 2026';
 
 const s = (heading: string, ...blocks: (string | string[])[]): LegalSection => ({
