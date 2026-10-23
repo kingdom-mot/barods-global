@@ -69,7 +69,7 @@ export default function PropertyCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-1 px-3.5 pb-3.5 pt-7">
-        <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-brand-ink">
+        <h3 className="line-clamp-2 text-base font-extrabold leading-snug tracking-[-0.01em] text-brand-ink">
           <Link href={href} className="hover:text-brand-greenDark">{p.title}</Link>
         </h3>
         <p className="truncate text-[13px] font-medium text-brand-orange">{place}</p>
