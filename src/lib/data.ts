@@ -139,10 +139,22 @@ export async function getAgentProperties(agentSlug: string): Promise<Property[]>
   return (await allProperties()).filter((p) => p.agentSlug === agentSlug);
 }
 
-export async function getCityCounts(): Promise<Record<string, number>> {
-  const counts: Record<string, number> = {};
-  for (const p of await allProperties()) counts[p.citySlug] = (counts[p.citySlug] ?? 0) + 1;
-  return counts;
+/** Words used to match a place name against a listing's area, city and state (same as the location search). */
+const placeWords = (s: string) => s.toLowerCase().replace(/-/g, ' ').replace(/\bstate\b/g, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Live listings per homepage city card. A card counts every available listing whose area, city or state
+ * matches its name, so "Lagos" includes Lekki, Ikeja and the rest of Lagos State, and "Abeokuta" includes its areas.
+ */
+export async function getPlaceCounts(names: string[]): Promise<Record<string, number>> {
+  const live = (await allProperties()).filter((p) => p.availability !== 'sold' && p.availability !== 'let');
+  return Object.fromEntries(
+    names.map((name) => {
+      const want = placeWords(name);
+      const n = live.filter((p) => [p.area, p.city, p.state, p.stateSlug].some((v) => v && placeWords(v).includes(want))).length;
+      return [name, n];
+    }),
+  );
 }
 
 // A search for a whole group ("House", "Land") or an old WordPress type name matches every type in it.

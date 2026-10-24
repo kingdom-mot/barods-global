@@ -97,3 +97,8 @@
 .article hr { border-color: #e3e6ea; margin: 2.2em 0; }
 .article table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
 .article th, .article td { border-bottom: 1px solid #e3e6ea; padding: 0.6em 0.4em; text-align: left; }
+
+@keyframes gallery-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}

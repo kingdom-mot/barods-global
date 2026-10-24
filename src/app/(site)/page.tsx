@@ -5,17 +5,16 @@ import GoogleReviews from '@/components/GoogleReviews';
 import TrustindexWidget from '@/components/TrustindexWidget';
 import { formatDate, getPosts } from '@/lib/blog';
 import { getGoogleReviews, WRITE_REVIEW_URL } from '@/lib/reviews';
-import { getAgents, getCityCounts, getFeatured } from '@/lib/data';
+import { getAgents, getFeatured, getPlaceCounts } from '@/lib/data';
 import { citySlug, getHero, getHomeCities, getPartners, getReviewsWidgetId, getTeam, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
 
 export default async function HomePage() {
   const currency = getVisitorCurrency();
-  const [featured, agents, counts, hero, team, partners, , allPosts, cities, reviews, widgetId] = await Promise.all([
+  const [featured, agents, hero, team, partners, , allPosts, cities, reviews, widgetId] = await Promise.all([
     getFeatured(6),
     getAgents(),
-    getCityCounts(),
     getHero(),
     getTeam('home'),
     getPartners(),
@@ -28,6 +27,7 @@ export default async function HomePage() {
   // Newest posts first; four across on desktop, like the old homepage.
   const posts = allPosts.slice(0, 4);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
+  const counts = await getPlaceCounts(cities.map((c) => c.name));
 
   return (
     <>
@@ -85,11 +85,11 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {cities.map((c) => {
               const slug = citySlug(c.name);
-              const n = counts[slug] ?? 0;
+              const n = counts[c.name] ?? 0;
               return (
                 <Link
                   key={slug}
-                  href={`/properties?city=${slug}`}
+                  href={`/properties?location=${encodeURIComponent(c.name)}`}
                   className="group relative isolate flex h-44 flex-col justify-end overflow-hidden rounded-xl bg-brand-ink p-5 text-white sm:h-52"
                 >
                   {c.image && (
