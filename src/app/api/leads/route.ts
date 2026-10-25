@@ -38,13 +38,14 @@ async function repeatedSender(phone: string, email: string) {
   }
 }
 
-const SOURCES = ['property_enquiry', 'viewing_request', 'contact', 'agent_profile', 'service', 'visitor_signup'];
+const SOURCES = ['property_enquiry', 'viewing_request', 'contact', 'agent_profile', 'service', 'visitor_signup', 'valuation'];
 const KIND: Record<string, string> = {
   property_enquiry: 'Property enquiry',
   viewing_request: 'Tour request',
   agent_profile: 'Enquiry from your profile',
   contact: 'Contact form message',
   service: 'Service enquiry',
+  valuation: 'Market evaluation request',
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

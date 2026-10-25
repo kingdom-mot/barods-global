@@ -2,6 +2,7 @@ import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
 import GoogleReviews from '@/components/GoogleReviews';
+import MarketEvaluation from '@/components/MarketEvaluation';
 import TrustindexWidget from '@/components/TrustindexWidget';
 import { formatDate, getPosts } from '@/lib/blog';
 import { getGoogleReviews, WRITE_REVIEW_URL } from '@/lib/reviews';
@@ -107,6 +108,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Sell or let: market evaluation */}
+      <MarketEvaluation />
 
       {/* Team */}
       <section className="container-site py-16 sm:py-20">

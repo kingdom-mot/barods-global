@@ -11,6 +11,7 @@ const SOURCE: Record<string, string> = {
   agent_profile: 'Via your profile',
   contact: 'Contact page',
   service: 'Service enquiry',
+  valuation: 'Market evaluation (sell / let)',
   visitor_signup: 'Website visitor · asked to be kept updated',
 };
 
