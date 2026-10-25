@@ -10,7 +10,6 @@ import { HoneyPot, useFormTimer } from './spam';
  * a draggable pin and "use my location". If the map can't load, people simply type the address.
  */
 
-const LEAFLET = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist';
 const ABEOKUTA: [number, number] = [7.1475, 3.3619];
 
 const STATES = [
@@ -33,26 +32,27 @@ const EMPTY: Fields = {
 };
 
 let leafletPromise: Promise<any> | null = null;
+/** Leaflet 1.9.4 is bundled with the site (src/vendor/leaflet), so the map never depends on an outside CDN. */
 function loadLeaflet(): Promise<any> {
   if (typeof window === 'undefined') return Promise.reject();
   if ((window as any).L) return Promise.resolve((window as any).L);
   if (leafletPromise) return leafletPromise;
-  leafletPromise = new Promise((resolve, reject) => {
+  if (!document.getElementById('leaflet-css')) {
     const css = document.createElement('link');
+    css.id = 'leaflet-css';
     css.rel = 'stylesheet';
-    css.href = `${LEAFLET}/leaflet.css`;
+    css.href = '/vendor/leaflet/leaflet.css';
     document.head.appendChild(css);
-    const s = document.createElement('script');
-    s.src = `${LEAFLET}/leaflet.js`;
-    s.async = true;
-    s.onload = () => ((window as any).L ? resolve((window as any).L) : reject());
-    s.onerror = () => {
+  }
+  leafletPromise = import('@/vendor/leaflet/Leaflet.js')
+    .then((mod) => {
+      (window as any).L = mod;
+      return mod;
+    })
+    .catch((e) => {
       leafletPromise = null;
-      reject();
-    };
-    document.head.appendChild(s);
-    setTimeout(() => reject(), 10000);
-  });
+      throw e;
+    });
   return leafletPromise;
 }
 
@@ -115,6 +115,7 @@ export default function MarketEvaluation({ agentSlug }: { agentSlug?: string }) 
   const map = useRef<any>(null);
   const marker = useRef<any>(null);
   const searchInput = useRef<HTMLInputElement>(null);
+  const picked = useRef(''); // the label of the place just chosen, so choosing doesn't search again
   const dialog = useRef<HTMLDivElement>(null);
 
   const fill = useCallback((p: Partial<Place>, overwrite = true) => {
@@ -184,10 +185,16 @@ export default function MarketEvaluation({ agentSlug }: { agentSlug?: string }) 
       .then((L) => {
         if (cancelled || !mapEl.current) return;
         map.current = L.map(mapEl.current, { zoomControl: true, scrollWheelZoom: false }).setView(pin ? [pin.lat, pin.lon] : ABEOKUTA, pin ? 16 : 12);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
         }).addTo(map.current);
+        // If the map pictures never arrive (blocked or very slow network), switch to the Google map preview.
+        let anyTile = false;
+        tiles.on('tileload', () => (anyTile = true));
+        setTimeout(() => {
+          if (!cancelled && !anyTile) setMapState('failed');
+        }, 8000);
         map.current.on('click', (e: any) => {
           placePin(e.latlng.lat, e.latlng.lng, map.current.getZoom());
           reverse(e.latlng.lat, e.latlng.lng);
@@ -214,7 +221,7 @@ export default function MarketEvaluation({ agentSlug }: { agentSlug?: string }) 
   // Place suggestions as they type (biased towards Abeokuta / Nigeria).
   useEffect(() => {
     const term = q.trim();
-    if (term.length < 3) {
+    if (term.length < 3 || term === picked.current) {
       setResults([]);
       return;
     }
@@ -238,6 +245,7 @@ export default function MarketEvaluation({ agentSlug }: { agentSlug?: string }) 
   }, [q]);
 
   function choose(p: Place) {
+    picked.current = p.label;
     setQ(p.label);
     setResults([]);
     fill(p, true);
@@ -402,7 +410,7 @@ export default function MarketEvaluation({ agentSlug }: { agentSlug?: string }) 
                         aria-controls="mev-results"
                       />
                       {(results.length > 0 || searching) && (
-                        <ul id="mev-results" role="listbox" className="absolute inset-x-0 top-full z-[1000] mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-xl">
+                        <ul id="mev-results" role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-xl">
                           {searching && results.length === 0 && <li className="px-4 py-3 text-sm text-muted">Searching…</li>}
                           {results.map((r, i) => (
                             <li key={`${r.lat},${r.lon},${i}`} role="option" aria-selected={false}>
@@ -417,26 +425,41 @@ export default function MarketEvaluation({ agentSlug }: { agentSlug?: string }) 
                     </div>
 
                     <div className="relative overflow-hidden rounded-xl border border-line">
-                      <div ref={mapEl} className="h-52 w-full bg-paper sm:h-64" />
-                      {mapState !== 'ready' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-paper p-4 text-center text-sm text-muted">
-                          {mapState === 'loading' ? 'Loading map…' : 'The map couldn’t load. Just type the address below.'}
-                        </div>
+                      {/* isolate keeps the map’s own layers (zoom buttons, pin) underneath the suggestions and the backup map */}
+                      <div ref={mapEl} className="isolate h-52 w-full bg-paper sm:h-64" />
+                      {mapState === 'loading' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-paper p-4 text-center text-sm text-muted">Loading map…</div>
+                      )}
+                      {mapState === 'failed' && (
+                        // Backup: Google's free embedded map, following the pin or the address as it's typed.
+                        <iframe
+                          title="Map of the property location"
+                          className="absolute inset-0 z-10 h-full w-full bg-paper"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                            pin ? `${pin.lat},${pin.lon}` : [f.street, f.area, f.city, f.state === 'Other (outside Nigeria)' ? '' : f.state].filter(Boolean).join(', ') || 'Abeokuta, Ogun State',
+                          )}&z=${pin || f.street || f.area ? 16 : 12}&output=embed`}
+                        />
                       )}
                       {mapState === 'ready' && (
                         <button
                           type="button"
                           onClick={useMyLocation}
-                          className="absolute bottom-3 right-3 z-[500] flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold shadow-md hover:text-brand-greenDark"
+                          className="absolute bottom-8 right-3 z-10 flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold shadow-md hover:text-brand-greenDark"
                         >
                           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /><circle cx="12" cy="12" r="7" /></svg>
                           {locating ? 'Finding you…' : 'Use my location'}
                         </button>
                       )}
                     </div>
-                    {mapState === 'ready' && (
-                      <p className="text-xs text-muted">{pin ? 'Drag the pin to the exact spot if needed.' : 'Search above, tap the map, or use your location to drop a pin.'}</p>
-                    )}
+                    <p className="text-xs text-muted">
+                      {mapState === 'failed'
+                        ? 'Search above or type the address below; the map follows along.'
+                        : pin
+                          ? 'Drag the pin to the exact spot if needed.'
+                          : 'Search above, tap the map, or use your location to drop a pin.'}
+                    </p>
 
                     <input className={input} value={f.building} onChange={(e) => set('building', e.target.value)} placeholder="Building, estate or house name (optional)" aria-label="Building, estate or house name (optional)" maxLength={120} />
                     <input className={input} value={f.street} onChange={(e) => set('street', e.target.value)} placeholder="Street address" aria-label="Street address" maxLength={160} />
