@@ -9,6 +9,17 @@ type CookieList = { name: string; value: string; options: CookieOptions }[];
  * 2. Portal pages: keep the Supabase sign-in fresh and send signed-out visitors to /login.
  */
 export async function middleware(req: NextRequest) {
+  // Always https: a visit to http://barodsglobal.com/… is sent to https://… (the host's proxy reports the original scheme).
+  const proto = req.headers.get('x-forwarded-proto');
+  const reqHost = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(':')[0];
+  if (proto === 'http' && reqHost && !/^(localhost|127\.|0\.0\.0\.0)/.test(reqHost)) {
+    const to = req.nextUrl.clone();
+    to.protocol = 'https:';
+    to.host = reqHost;
+    to.port = '';
+    return NextResponse.redirect(to, 301);
+  }
+
   let res = NextResponse.next({ request: req });
 
   const isPortal = req.nextUrl.pathname.startsWith('/portal');

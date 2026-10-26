@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTeam } from '@/lib/settings';
+import { getHero, getTeam } from '@/lib/settings';
 
 export const metadata: Metadata = {
   title: 'About Us',
@@ -70,14 +70,15 @@ function Eyebrow({ children, light = false }: { children: React.ReactNode; light
 }
 
 export default async function AboutPage() {
-  const team = await getTeam('about');
+  const [team, hero] = await Promise.all([getTeam('about'), getHero()]);
   const founderPhoto = team.find((m) => /babatunde|denton/i.test(m.name))?.photoUrl || '/wp-content/uploads/2025/08/1-1.jpg';
 
   return (
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-brand-ink py-16 text-white sm:py-20">
-        <img src="/wp-content/uploads/2025/07/Barods-image.jpeg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
+        {/* A different photo from the one further down the page (the homepage banner photo) */}
+        <img src={hero.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
         <div className="absolute inset-0 bg-gradient-to-r from-brand-ink via-brand-ink/85 to-brand-ink/40" />
         <div className="container-site relative">
           <Eyebrow light>About Us</Eyebrow>
@@ -113,7 +114,7 @@ export default async function AboutPage() {
             </p>
           </div>
         </div>
-        <img src="/wp-content/uploads/2025/07/Barods-image.jpeg" alt="A Barods Global project" className="aspect-[4/3] w-full rounded-2xl object-cover shadow-lg" />
+        <img src="/wp-content/uploads/2025/07/Barods-image.jpeg" alt="A Barods Global building project" className="aspect-[4/3] w-full rounded-2xl object-cover shadow-lg" />
       </section>
 
       {/* Mission & vision */}
@@ -172,8 +173,11 @@ export default async function AboutPage() {
             </p>
             <p>These relationships help us connect clients with relevant expertise and opportunities while providing a broader perspective on property ownership and investment.</p>
             <div className="flex flex-wrap gap-2 pt-2">
-              {['Nigeria', 'South Africa', 'United States', 'Canada', 'United Arab Emirates'].map((c) => (
-                <span key={c} className="rounded-full border border-white/25 px-3 py-1 text-sm text-white">{c}</span>
+              {['Nigeria', 'South Africa', 'United States', 'Canada', 'United Arab Emirates'].map((c, i, all) => (
+                <span key={c} className="rounded-full border border-white/25 px-3 py-1 text-sm text-white">
+                  {c}
+                  {i < all.length - 1 && <span className="sr-only">, </span>}
+                </span>
               ))}
             </div>
           </div>
@@ -246,8 +250,11 @@ export default async function AboutPage() {
             <p>Through our professional relationships and international connections, we also help clients explore relevant property opportunities beyond Nigeria.</p>
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            {['Abeokuta (HQ)', 'Lagos', 'Ibadan'].map((c) => (
-              <span key={c} className="rounded-full bg-brand-greenLight px-3 py-1 text-sm font-medium text-brand-greenDark">{c}</span>
+            {['Abeokuta (HQ)', 'Lagos', 'Ibadan'].map((c, i, all) => (
+              <span key={c} className="rounded-full bg-brand-greenLight px-3 py-1 text-sm font-medium text-brand-greenDark">
+                {c}
+                {i < all.length - 1 && <span className="sr-only">, </span>}
+              </span>
             ))}
           </div>
         </div>

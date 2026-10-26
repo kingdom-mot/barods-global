@@ -46,6 +46,8 @@ export default async function SiteSettingsPage() {
             { key: 'phone', label: 'Phone' },
             { key: 'whatsapp', label: 'WhatsApp number', hint: 'Include the country code, e.g. +234…' },
             { key: 'email', label: 'Email', type: 'email' },
+            { key: 'hours', label: 'Office hours', hint: 'e.g. Monday to Friday, 9am – 5pm. Saturday, 10am – 2pm. Shown on Contact Us.' },
+            { key: 'reply', label: 'How fast you reply', hint: 'Shown on Contact Us, e.g. We reply within 24 hours.' },
             { key: 'tagline', label: 'Footer tagline', type: 'textarea' },
           ]}
         />

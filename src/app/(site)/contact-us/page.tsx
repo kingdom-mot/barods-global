@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import EnquiryForm from '@/components/EnquiryForm';
+import MarketEvaluation from '@/components/MarketEvaluation';
+import { waNumber } from '@/lib/phone';
 import { getContact, MAPS_LISTING_URL } from '@/lib/settings';
 
 export const metadata: Metadata = { title: 'Contact Us' };
@@ -12,13 +14,20 @@ export default async function ContactPage({ searchParams }: { searchParams: { re
     { label: 'Office', value: contact.address, href: MAPS_LISTING_URL, external: true },
     { label: 'Phone', value: contact.phone, href: tel },
     { label: 'Email', value: contact.email, href: `mailto:${contact.email}` },
+    {
+      label: 'WhatsApp',
+      value: 'Chat with us on WhatsApp',
+      href: `https://wa.me/${waNumber(contact.whatsapp || contact.phone)}?text=${encodeURIComponent('Hello Barods Global, I have an enquiry.')}`,
+      external: true,
+    },
   ];
   return (
+    <>
     <div className="container-site py-14">
       <h1 className="section-title">Contact Us</h1>
       <p className="section-sub">Talk to an expert about buying, renting, building or managing property.</p>
 
-      <dl className="mt-8 grid gap-4 sm:grid-cols-3">
+      <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {info.map((i) => (
           <div key={i.label} className="rounded-xl border border-line bg-paper p-5">
             <dt className="text-xs uppercase tracking-wide text-muted">{i.label}</dt>
@@ -34,6 +43,22 @@ export default async function ContactPage({ searchParams }: { searchParams: { re
           </div>
         ))}
       </dl>
+      {(contact.hours || contact.reply) && (
+        <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted">
+          {contact.hours && (
+            <span className="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 text-brand-green" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+              <span><strong className="font-semibold text-brand-ink">Office hours:</strong> {contact.hours}</span>
+            </span>
+          )}
+          {contact.reply && (
+            <span className="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 text-brand-green" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" /></svg>
+              {contact.reply}
+            </span>
+          )}
+        </p>
+      )}
 
       {/* Map and message box side by side: same top, same bottom */}
       <div className="mt-8 grid items-stretch gap-8 lg:grid-cols-2">
@@ -57,5 +82,7 @@ export default async function ContactPage({ searchParams }: { searchParams: { re
         </div>
       </div>
     </div>
+    <MarketEvaluation />
+    </>
   );
 }

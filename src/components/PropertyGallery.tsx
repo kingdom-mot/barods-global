@@ -12,7 +12,8 @@ function NoPhoto({ className = '' }: { className?: string }) {
 }
 
 /** Houzez-style gallery: large photo + thumbnails, a Map tab, and a full-screen viewer. */
-export default function PropertyGallery({ photos, title, mapQuery }: { photos: string[]; title: string; mapQuery: string }) {
+/** `alt`: what the listing is, used to describe each photo for screen readers and Google Images. */
+export default function PropertyGallery({ photos, title, mapQuery, alt = title }: { photos: string[]; title: string; mapQuery: string; alt?: string }) {
   const [tab, setTab] = useState<'gallery' | 'map'>('gallery');
   const [open, setOpen] = useState<number | null>(null);
   const count = photos.length;
@@ -95,11 +96,11 @@ export default function PropertyGallery({ photos, title, mapQuery }: { photos: s
         count > 1 ? (
           <div className="grid gap-2 sm:h-[480px] sm:grid-cols-4 sm:grid-rows-2">
             <button type="button" onClick={() => setOpen(0)} className="relative sm:col-span-3 sm:row-span-2">
-              <img src={photos[0]} alt={title} className="aspect-[4/3] h-full w-full rounded-xl object-cover sm:aspect-auto" />
+              <img src={photos[0]} alt={`${alt}, photo 1`} className="aspect-[4/3] h-full w-full rounded-xl object-cover sm:aspect-auto" />
             </button>
             {photos.slice(1, 3).map((src, i) => (
               <button key={src} type="button" onClick={() => setOpen(i + 1)} className="relative hidden sm:block">
-                <img src={src} alt="" className="h-full w-full rounded-xl object-cover" />
+                <img src={src} alt={`${alt}, photo ${i + 2}`} className="h-full w-full rounded-xl object-cover" />
                 {i === 1 && count > 3 && (
                   <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-brand-ink/60 text-lg font-semibold text-white">
                     +{count - 3} photos
@@ -112,7 +113,7 @@ export default function PropertyGallery({ photos, title, mapQuery }: { photos: s
         ) : (
           count === 1 ? (
             <button type="button" onClick={() => setOpen(0)} className="block w-full">
-              <img src={photos[0]} alt={title} className="aspect-[4/3] w-full rounded-xl object-cover sm:aspect-auto sm:h-[480px]" />
+              <img src={photos[0]} alt={alt} className="aspect-[4/3] w-full rounded-xl object-cover sm:aspect-auto sm:h-[480px]" />
             </button>
           ) : (
             <NoPhoto className="aspect-[4/3] w-full rounded-xl sm:aspect-auto sm:h-[480px]" />
@@ -182,7 +183,7 @@ export default function PropertyGallery({ photos, title, mapQuery }: { photos: s
             <div className="flex h-full transition-transform duration-700 ease-in-out motion-reduce:transition-none" style={{ transform: `translateX(-${open * 100}%)` }}>
               {photos.map((src, i) => (
                 <div key={src} className="flex h-full w-full shrink-0 items-center justify-center px-4 sm:px-20" aria-hidden={i !== open}>
-                  <img src={src} alt={`${title}, photo ${i + 1}`} className="max-h-full max-w-full select-none object-contain" draggable={false} />
+                  <img src={src} alt={`${alt}, photo ${i + 1}`} className="max-h-full max-w-full select-none object-contain" draggable={false} />
                 </div>
               ))}
             </div>

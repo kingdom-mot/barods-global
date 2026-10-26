@@ -15,8 +15,15 @@ const PRICE_STEPS = [
  * Plain GET form so search works without JavaScript and every search has a shareable URL.
  * `variant="hero"` is the homepage bar; `variant="bar"` sits on top of the results page.
  */
-export default function SearchForm({ values = {}, variant = 'hero' }: { values?: SearchParams; variant?: 'hero' | 'bar' }) {
-  const purpose = values.purpose ?? 'sale';
+/** `purposes`: the choices that have live listings; empty ones (e.g. Shortlet with nothing listed) are hidden. */
+export default function SearchForm({ values = {}, variant = 'hero', purposes = ['sale', 'rent', 'shortlet'] }: { values?: SearchParams; variant?: 'hero' | 'bar'; purposes?: string[] }) {
+  const shown = [
+    ['sale', 'Buy'],
+    ['rent', 'Rent'],
+    ['shortlet', 'Shortlet'],
+  ].filter(([v]) => purposes.includes(v) || values.purpose === v);
+  if (shown.length === 0) shown.push(['sale', 'Buy']);
+  const purpose = values.purpose ?? shown[0][0];
   return (
     <form action="/properties" method="get" className={variant === 'hero' ? 'rounded-xl bg-white p-4 text-left shadow-xl sm:p-5' : ''}>
       {/* keep ticked features and status when the top bar search changes */}
@@ -24,11 +31,7 @@ export default function SearchForm({ values = {}, variant = 'hero' }: { values?:
       {variant === 'bar' && values.status && <input type="hidden" name="status" value={values.status} />}
       <fieldset className="mb-4 flex gap-2">
         <legend className="sr-only">Purpose</legend>
-        {[
-          ['sale', 'Buy'],
-          ['rent', 'Rent'],
-          ['shortlet', 'Shortlet'],
-        ].map(([v, label]) => (
+        {shown.map(([v, label]) => (
           <label key={v} className="cursor-pointer">
             <input type="radio" name="purpose" value={v} defaultChecked={purpose === v} className="peer sr-only" />
             <span className="inline-flex min-h-[44px] items-center rounded-md bg-brand-green px-6 text-sm font-semibold text-brand-ink transition-colors hover:text-white peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-ink peer-focus-visible:ring-offset-2">

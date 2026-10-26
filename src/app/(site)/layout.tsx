@@ -2,6 +2,8 @@ import CookieConsent from '@/components/CookieConsent';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import VisitorCapture from '@/components/VisitorCapture';
+import WhatsAppFloat from '@/components/WhatsAppFloat';
+import { waNumber } from '@/lib/phone';
 import JsonLd from '@/components/JsonLd';
 import { getContact, getSocials } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
@@ -32,6 +34,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Header currency={getVisitorCurrency()} phone={contact.phone} />
       <main>{children}</main>
       <Footer />
+      <WhatsAppFloat number={waNumber(contact.whatsapp || contact.phone)} />
       <CookieConsent />
       <VisitorCapture />
     </>

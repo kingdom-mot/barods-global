@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
 import { renderMarkdown } from '@/lib/markdown';
+import { serviceAction } from '@/lib/serviceContent';
 import { getServices } from '@/lib/settings';
 
 type Props = { params: { slug: string } };
@@ -21,13 +22,13 @@ export default async function ServicePage({ params }: Props) {
       {/* Image and form share one row, so their top edges line up */}
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
         <div className="min-w-0">
-          <img src={s.image} alt="" className="aspect-[4/3] w-full rounded-xl object-cover" />
+          <img src={s.image} alt={`${s.name} by Barods Global`} className="aspect-[4/3] w-full rounded-xl object-cover" />
           <p className="mt-6 text-[17px] leading-relaxed">{s.summary}</p>
           {s.body && <div className="article mt-6" dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body) }} />}
         </div>
-        <aside className="rounded-xl border border-line p-5 lg:sticky lg:top-24">
-          <h2 className="mb-4 font-semibold">Enquire about {s.name.toLowerCase()}</h2>
-          <EnquiryForm source="service" defaultMessage={`I'd like to discuss ${s.name.toLowerCase()}.`} />
+        <aside id="enquire" className="scroll-mt-[150px] rounded-xl border border-line p-5 lg:sticky lg:top-24">
+          <h2 className="mb-4 font-semibold">{serviceAction(s.slug, s.name).heading}</h2>
+          <EnquiryForm source="service" defaultMessage={`I'd like to discuss ${s.name.toLowerCase()}.`} submitLabel={serviceAction(s.slug, s.name).cta} />
         </aside>
       </div>
     </div>

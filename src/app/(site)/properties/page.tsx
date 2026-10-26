@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import SearchForm from '@/components/SearchForm';
-import { featureOptions, getAgents, searchProperties, selectedFeatures } from '@/lib/data';
+import { featureOptions, getAgents, getLivePurposes, searchProperties, selectedFeatures } from '@/lib/data';
 import type { SearchParams } from '@/lib/types';
 import { loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
@@ -17,7 +17,7 @@ const PURPOSE_TITLE: Record<string, string> = { sale: 'for sale', rent: 'for ren
 export default async function PropertiesPage({ searchParams }: { searchParams: SearchParams }) {
   const currency = getVisitorCurrency();
   await loadRates();
-  const [results, agents, features] = await Promise.all([searchProperties(searchParams), getAgents(), featureOptions()]);
+  const [results, agents, features, purposes] = await Promise.all([searchProperties(searchParams), getAgents(), featureOptions(), getLivePurposes()]);
   const ticked = selectedFeatures(searchParams);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
   const baseHeading = searchParams.purpose ? `Properties ${PURPOSE_TITLE[searchParams.purpose] ?? ''}` : 'All properties';
@@ -35,7 +35,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
     <>
       <section className="border-b border-line bg-paper py-6">
         <div className="container-site">
-          <SearchForm values={searchParams} variant="bar" />
+          <SearchForm values={searchParams} variant="bar" purposes={purposes} />
         </div>
       </section>
 
@@ -99,7 +99,10 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
             <div>
               <h1 className="font-display text-3xl">{heading}</h1>
               <p className="text-sm text-muted">
-                {results.length} {results.length === 1 ? 'result' : 'results'} · prices shown in your currency
+                {results.length} {results.length === 1 ? 'result' : 'results'} ·{' '}
+                {currency === 'NGN'
+                  ? 'Prices in naira (₦). Change the currency at the top of the page.'
+                  : `Prices shown in ${currency}, converted from naira at today’s rate.`}
               </p>
             </div>
             <div className="flex gap-2 text-sm" role="group" aria-label="Sort">

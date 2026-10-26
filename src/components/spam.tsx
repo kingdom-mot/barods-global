@@ -2,16 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 
-/** A field people never see. Bots fill in every input, so anything in it marks the message as spam. */
+/**
+ * A field people never see or hear (no label, not shown, skipped by keyboard and screen readers).
+ * Bots tend to fill in every input they find, so anything in it marks the message as spam.
+ */
 export function HoneyPot() {
-  return (
-    <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
-      <label>
-        Leave this empty
-        <input name="hp" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
-      </label>
-    </div>
-  );
+  return <input type="text" name="hp" tabIndex={-1} autoComplete="off" defaultValue="" aria-hidden="true" style={{ display: 'none' }} />;
 }
 
 /** Milliseconds since the form appeared; a person needs a few seconds, a bot doesn't. */

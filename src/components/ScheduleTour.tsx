@@ -115,8 +115,8 @@ export default function ScheduleTour({ propertyRef, agentSlug, title }: { proper
             {TIMES.map((t) => <option key={t} value={t}>{label12(t)}</option>)}
           </select>
         </label>
-        <label className="label">Full name<input name="name" required className="field" autoComplete="name" /></label>
-        <label className="label">Phone / WhatsApp<input name="phone" type="tel" required className="field" autoComplete="tel" /></label>
+        <label className="label"><span>Full name <span className="text-brand-orange" aria-hidden="true">*</span></span><input name="name" required aria-required="true" className="field" autoComplete="name" /></label>
+        <label className="label"><span>Phone / WhatsApp <span className="text-brand-orange" aria-hidden="true">*</span></span><input name="phone" type="tel" required aria-required="true" className="field" autoComplete="tel" /></label>
         <label className="label">Email (optional)<input name="email" type="email" className="field" autoComplete="email" /></label>
       </div>
       <label className="label">

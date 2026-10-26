@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import * as local from './content';
 import { applyRates } from './currency';
+import { SERVICE_BODY } from './serviceContent';
 import { supabase } from './data';
 import type { TeamMember } from './types';
 
@@ -9,7 +10,7 @@ import type { TeamMember } from './types';
  * built-in content, so the site still renders if the database is unreachable.
  */
 
-export type Contact = { address: string; phone: string; whatsapp: string; email: string; tagline: string };
+export type Contact = { address: string; phone: string; whatsapp: string; email: string; tagline: string; hours: string; reply: string };
 export type Socials = Partial<Record<'facebook' | 'instagram' | 'linkedin' | 'x' | 'youtube' | 'tiktok', string>>;
 export type Hero = { eyebrow: string; title: string; subtitle: string; image: string };
 export type MortgageSettings = {
@@ -28,7 +29,7 @@ export type Partner = { name: string; logo: string; link: string | null };
 export type HomeCity = { name: string; state: string; image: string };
 
 export const DEFAULTS = {
-  contact: { ...local.contact, whatsapp: local.contact.phone } as Contact,
+  contact: { ...local.contact, whatsapp: local.contact.phone, hours: '', reply: 'We reply within 24 hours.' } as Contact,
   socials: {} as Socials,
   hero: {
     eyebrow: 'Real Estate and Construction',
@@ -117,12 +118,13 @@ export const getPartners = cache(async (): Promise<Partner[]> => {
 });
 
 export const getServices = cache(async (): Promise<Service[]> => {
-  const fallback = local.services.map((s) => ({ slug: s.slug, name: s.name, summary: s.summary, body: null, image: s.image }));
+  const fallback = local.services.map((s) => ({ slug: s.slug, name: s.name, summary: s.summary, body: SERVICE_BODY[s.slug] ?? null, image: s.image }));
   if (!supabase) return fallback;
   try {
     const { data, error } = await supabase.from('services').select('*').order('sort');
     if (error || !data?.length) return fallback;
-    return data.map((s) => ({ slug: s.slug, name: s.name, summary: s.summary ?? '', body: s.body, image: s.image_url ?? '' }));
+    // A service with no write-up of its own gets the standard one (what's included, how it works).
+    return data.map((s) => ({ slug: s.slug, name: s.name, summary: s.summary ?? '', body: (s.body ?? '').trim().length > 80 ? s.body : SERVICE_BODY[s.slug] ?? s.body, image: s.image_url ?? '' }));
   } catch {
     return fallback;
   }

@@ -32,6 +32,10 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
+  // Browsers remember to use https for this site (sent only over https by browsers' rules).
+  async headers() {
+    return [{ source: '/:path*', headers: [{ key: 'Strict-Transport-Security', value: 'max-age=31536000' }] }];
+  },
   // Keep every old WordPress address working, so Google links and shared links still land somewhere useful.
   async redirects() {
     return [
@@ -56,6 +60,28 @@ const nextConfig = {
       r('/country/:slug', '/properties'),
       r('/feature/:slug', '/properties'),
       r('/label/:slug', '/properties'),
+
+      // Old shop / account pages from the WordPress theme
+      r('/shop', '/properties'),
+      r('/shop/:path*', '/properties'),
+      r('/product/:path*', '/properties'),
+      r('/product-category/:path*', '/properties'),
+      r('/cart', '/properties'),
+      r('/checkout', '/properties'),
+      r('/my-account/:path*', '/login'),
+      r('/wishlist', '/properties'),
+      r('/compare', '/properties'),
+      r('/compare-properties', '/properties'),
+      r('/search-results', '/properties'),
+      r('/advanced-search', '/properties'),
+      r('/listings', '/properties'),
+      r('/listing/:path*', '/properties'),
+      r('/page/:n', '/'),
+      r('/services', '/our-services'),
+      r('/services/:path*', '/our-services'),
+      r('/contact', '/contact-us'),
+      r('/about', '/about-us'),
+      r('/agents/:slug', '/agent/:slug'),
 
       // Pages
       r('/privacy-policy', '/privacy'),

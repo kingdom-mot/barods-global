@@ -1,7 +1,7 @@
 import JsonLd from '@/components/JsonLd';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import PostCard from '@/components/PostCard';
 import ShareBar from '@/components/ShareBar';
 import { formatDate, getPost, getPosts, renderMarkdown } from '@/lib/blog';
@@ -21,7 +21,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArticlePage({ params }: Props) {
   const post = await getPost(params.slug);
-  if (!post) notFound();
+  if (!post) {
+    // A shortened or older address of a post (e.g. cut off mid-word) → that post; otherwise the blog.
+    const want = decodeURIComponent(params.slug).toLowerCase();
+    const near = want.length >= 15 ? (await getPosts()).find((p) => p.slug.startsWith(want) || want.startsWith(p.slug)) : undefined;
+    permanentRedirect(near ? `/blog/${near.slug}` : '/blog');
+  }
   const all = await getPosts();
   const more = [...all.filter((p) => p.id !== post.id && p.category === post.category), ...all.filter((p) => p.id !== post.id && p.category !== post.category)].slice(0, 3);
   const initials = (post.author ?? 'Barods Global').split(' ').map((w) => w[0]).slice(0, 2).join('');

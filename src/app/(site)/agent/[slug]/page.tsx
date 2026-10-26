@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
 import PropertyCard from '@/components/PropertyCard';
 import { getAgent, getAgentProperties, getProperty } from '@/lib/data';
@@ -46,7 +46,7 @@ const MessageIcon = () => (
 
 export default async function AgentPage({ params, searchParams }: Props) {
   const agent = await getAgent(params.slug);
-  if (!agent) notFound();
+  if (!agent) permanentRedirect('/agents'); // former agents and old addresses
   const currency = getVisitorCurrency();
   const [, listings, contact] = await Promise.all([loadRates(), getAgentProperties(agent.slug), getContact()]);
   // Arrived from a listing? Only real property slugs are accepted, so this can't link off-site.

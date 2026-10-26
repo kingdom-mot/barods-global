@@ -6,7 +6,7 @@ import MarketEvaluation from '@/components/MarketEvaluation';
 import TrustindexWidget from '@/components/TrustindexWidget';
 import { formatDate, getPosts } from '@/lib/blog';
 import { getGoogleReviews, WRITE_REVIEW_URL } from '@/lib/reviews';
-import { getAgents, getFeatured, getPlaceCounts } from '@/lib/data';
+import { getAgents, getFeatured, getLivePurposes, getPlaceCounts } from '@/lib/data';
 import { citySlug, getHero, getHomeCities, getPartners, getReviewsWidgetId, getTeam, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
@@ -28,7 +28,7 @@ export default async function HomePage() {
   // Newest posts first; four across on desktop, like the old homepage.
   const posts = allPosts.slice(0, 4);
   const agentBySlug = new Map(agents.map((a) => [a.slug, a]));
-  const counts = await getPlaceCounts(cities.map((c) => c.name));
+  const [counts, purposes] = await Promise.all([getPlaceCounts(cities.map((c) => c.name)), getLivePurposes()]);
 
   return (
     <>
@@ -48,7 +48,7 @@ export default async function HomePage() {
             {hero.subtitle}
           </p>
           <div className="mx-auto mt-10 max-w-5xl">
-            <SearchForm />
+            <SearchForm purposes={purposes} />
           </div>
         </div>
       </section>

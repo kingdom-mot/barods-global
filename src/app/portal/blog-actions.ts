@@ -18,8 +18,13 @@ export type PostInput = {
   scheduleAt?: string | null; // ISO date-time for scheduled posts
 };
 
-const slugify = (s: string) =>
-  s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 90);
+/** Web address from the title: lower-case words joined by dashes, shortened at a whole word (never mid-word). */
+const slugify = (s: string) => {
+  const full = s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (full.length <= 90) return full;
+  const cut = full.slice(0, 91);
+  return cut.slice(0, cut.lastIndexOf('-')).replace(/-+$/, '');
+};
 
 export async function savePost(input: PostInput): Promise<{ ok: true; id: string; slug: string } | { ok: false; error: string }> {
   const me = await requirePerm('blog');

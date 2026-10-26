@@ -23,7 +23,7 @@ export async function saveSettings(key: 'contact' | 'socials' | 'hero' | 'mortga
   if (key === 'contact') {
     const c = value as Record<string, string>;
     if (!EMAIL.test(clean(c.email))) return { ok: false, error: 'Enter a valid contact email.' };
-    v = { address: clean(c.address, 300), phone: clean(c.phone, 40), whatsapp: clean(c.whatsapp, 40), email: clean(c.email, 160), tagline: clean(c.tagline, 200) };
+    v = { address: clean(c.address, 300), phone: clean(c.phone, 40), whatsapp: clean(c.whatsapp, 40), email: clean(c.email, 160), tagline: clean(c.tagline, 200), hours: clean(c.hours, 200), reply: clean(c.reply, 120) };
   } else if (key === 'socials') {
     const s = value as Record<string, string>;
     const out: Record<string, string> = {};

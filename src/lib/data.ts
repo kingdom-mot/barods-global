@@ -135,6 +135,44 @@ export async function getPropertyByWpSlug(slug: string): Promise<Property | unde
   return (await allProperties()).find((p) => p.wpSlug === decoded || p.wpSlug === slug);
 }
 
+const STOP = new Set(['a', 'an', 'the', 'and', 'at', 'in', 'on', 'of', 'for', 'with', 'to', 'by', 'sale', 'rent', 'let', 'is', 'now']);
+const slugWords = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !STOP.has(w)));
+
+/**
+ * An old or slightly different listing address (e.g. from Google, or a title that was edited) → the closest live
+ * listing, when most of its meaningful words match. Used to send old links to the right page instead of a 404.
+ */
+export async function findClosestProperty(slug: string): Promise<Property | undefined> {
+  let decoded = slug;
+  try {
+    decoded = decodeURIComponent(slug);
+  } catch {
+    /* already decoded */
+  }
+  const want = slugWords(decoded);
+  if (want.size < 3) return undefined;
+  let best: { p: Property; score: number; shared: number } | undefined;
+  for (const p of await allProperties()) {
+    for (const candidate of [p.slug, p.wpSlug ?? '']) {
+      if (!candidate) continue;
+      const have = slugWords(candidate);
+      let shared = 0;
+      want.forEach((w) => have.has(w) && shared++);
+      // Share of words in common, measured against the longer of the two addresses.
+      const score = shared / Math.max(want.size, have.size);
+      if (!best || score > best.score) best = { p, score, shared };
+    }
+  }
+  return best && best.score >= 0.6 && best.shared >= 3 ? best.p : undefined;
+}
+
+/** Which of Buy / Rent / Shortlet currently have live listings, so empty choices can be hidden. */
+export async function getLivePurposes(): Promise<string[]> {
+  const live = (await allProperties()).filter((p) => p.availability !== 'sold' && p.availability !== 'let');
+  const set = new Set(live.map((p) => p.purpose));
+  return ['sale', 'rent', 'shortlet'].filter((x) => set.has(x as Property['purpose']));
+}
+
 export async function getAgentProperties(agentSlug: string): Promise<Property[]> {
   return (await allProperties()).filter((p) => p.agentSlug === agentSlug);
 }

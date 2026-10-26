@@ -2,18 +2,19 @@ import { waNumber } from '@/lib/phone';
 import type { Metadata } from 'next';
 import JsonLd from '@/components/JsonLd';
 import Link from 'next/link';
-import { notFound, permanentRedirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import EnquiryForm from '@/components/EnquiryForm';
 import { youTubeEmbed } from '@/lib/video';
 import { SITE } from '@/lib/email';
 import MortgageCalculator from '@/components/MortgageCalculator';
 import PropertyCard, { statusBadge } from '@/components/PropertyCard';
 import PropertyGallery from '@/components/PropertyGallery';
+import { describeProperty } from '@/lib/describe';
 import ScheduleTour from '@/components/ScheduleTour';
 import ShareBar from '@/components/ShareBar';
 import { SpecIcon } from '@/components/SpecIcons';
 import { formatPrice } from '@/lib/currency';
-import { getAgent, getAgents, getProperty, getPropertyByWpSlug, searchProperties } from '@/lib/data';
+import { getAgent, getAgents, getProperty, findClosestProperty, getPropertyByWpSlug, searchProperties } from '@/lib/data';
 import { getContact, getMortgageSettings, loadRates } from '@/lib/settings';
 import { getVisitorCurrency } from '@/lib/visitor';
 
@@ -46,9 +47,9 @@ function Block({ id, title, children }: { id: string; title: string; children: R
 export default async function PropertyPage({ params }: Props) {
   const p = await getProperty(params.slug);
   if (!p) {
-    const moved = await getPropertyByWpSlug(params.slug);
-    if (moved) permanentRedirect(`/property/${moved.slug}`);
-    notFound();
+    // Old WordPress or edited addresses: send to the same listing, the closest match, or all properties (301).
+    const moved = (await getPropertyByWpSlug(params.slug)) ?? (await findClosestProperty(params.slug));
+    permanentRedirect(moved ? `/property/${moved.slug}` : '/properties');
   }
   const currency = getVisitorCurrency();
   const [rates, mortgageSettings, contact] = await Promise.all([loadRates(), getMortgageSettings(), getContact()]);
@@ -182,7 +183,7 @@ export default async function PropertyPage({ params }: Props) {
           <ShareBar title={p.title} path={`/property/${p.slug}`} />
         </div>
 
-        <PropertyGallery photos={p.photos} title={p.title} mapQuery={mapQuery} />
+        <PropertyGallery photos={p.photos} title={p.title} mapQuery={mapQuery} alt={describeProperty(p)} />
       </div>
 
       {/* Section jump menu, as on the current site */}

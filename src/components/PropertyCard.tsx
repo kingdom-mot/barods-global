@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { describeProperty } from '@/lib/describe';
 import { formatPrice, type CurrencyCode } from '@/lib/currency';
 import type { Agent, Property } from '@/lib/types';
 import SpecIcons from './SpecIcons';
@@ -43,7 +44,7 @@ export default function PropertyCard({
       <div className="relative">
         <Link href={href} aria-label={p.title}>
           {p.photos[0] ? (
-            <img src={p.photos[0]} alt="" className="aspect-[3/2] w-full object-cover" loading="lazy" />
+            <img src={p.photos[0]} alt={describeProperty(p)} className="aspect-[3/2] w-full object-cover" loading="lazy" />
           ) : (
             <NoPhoto className="aspect-[3/2] w-full" />
           )}
