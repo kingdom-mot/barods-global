@@ -83,6 +83,7 @@ export async function resendAccess(profileId: string, kind: 'invite' | 'recovery
 
 /** Invite someone who already has a public agent card (e.g. imported from WordPress) but no login. */
 export async function inviteAgentCard(agentId: string): Promise<Result> {
+  await requirePerm('team');
   const { data: a } = await adminClient().from('agents').select('full_name, email, position').eq('id', agentId).maybeSingle();
   if (!a) return { ok: false, error: 'Agent not found.' };
   return inviteMember({ fullName: a.full_name, email: a.email, role: 'agent', position: a.position ?? '' });

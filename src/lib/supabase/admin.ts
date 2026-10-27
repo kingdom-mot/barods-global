@@ -1,3 +1,4 @@
+import 'server-only'; // the build fails if this file is ever imported into browser code
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /**

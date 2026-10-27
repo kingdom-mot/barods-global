@@ -25,16 +25,29 @@ const r = (source, destination) => ({ source, destination, permanent: true });
 const nextConfig = {
   // Hostinger (and any Node server) runs the self-contained build; Vercel builds its own way.
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
-  images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'barodsglobal.com' },
-      { protocol: 'https', hostname: 'www.barodsglobal.com' },
-      { protocol: 'https', hostname: '*.supabase.co' },
-    ],
-  },
-  // Browsers remember to use https for this site (sent only over https by browsers' rules).
+  // The site shows images with plain <img> tags and never uses next/image, so the built-in image optimiser
+  // (/_next/image) is switched off entirely. It is where most 2026 Next.js security flaws were (SVG/AVIF
+  // remote code execution, SSRF, disk-filling DoS), so turning it off removes that whole area.
+  images: { unoptimized: true },
   async headers() {
-    return [{ source: '/:path*', headers: [{ key: 'Strict-Transport-Security', value: 'max-age=31536000' }] }];
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Browsers remember to use https for this site.
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+          // No other website may show these pages inside a frame (stops clickjacking).
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'" },
+          // Browsers must not guess file types (stops disguised uploads being run as scripts).
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Other sites see only "barodsglobal.com" when a visitor clicks away, never the full page address.
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Camera, microphone and payments are never needed; location only by the site itself ("Use my location").
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), payment=(), usb=(), geolocation=(self)' },
+        ],
+      },
+    ];
   },
   // Keep every old WordPress address working, so Google links and shared links still land somewhere useful.
   async redirects() {

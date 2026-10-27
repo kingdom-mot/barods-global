@@ -78,7 +78,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'You’ve sent several messages in a short time. Please wait a few minutes, or call us.' }, { status: 429 });
   }
 
-  if (!supabase) {
+  // Leads are saved by the server (service key), so the website's checks above can't be skipped by writing to the
+  // database directly. Without the key (local preview), fall back to the public client.
+  const db = process.env.SUPABASE_SERVICE_ROLE_KEY ? adminClient() : supabase;
+
+  if (!db) {
     // No database configured yet (preview build): accept so the form can be demonstrated.
     console.log('[lead]', { name, source, property: b?.propertyRef });
     return NextResponse.json({ ok: true, stored: false });
@@ -86,10 +90,10 @@ export async function POST(req: Request) {
 
   if (source === 'visitor_signup') {
     // One record per email address.
-    const { data: existing } = await supabase.from('leads').select('id').eq('source', 'visitor_signup').eq('email', email).limit(1);
+    const { data: existing } = await db.from('leads').select('id').eq('source', 'visitor_signup').eq('email', email).limit(1);
     if (existing?.length) return NextResponse.json({ ok: true, stored: true });
     const page = typeof b?.page === 'string' ? b.page.slice(0, 200) : '';
-    const { error } = await supabase.from('leads').insert({
+    const { error } = await db.from('leads').insert({
       name,
       email,
       phone: null,
@@ -109,9 +113,9 @@ export async function POST(req: Request) {
 
   const [propertyRes, agentRes] = await Promise.all([
     b?.propertyRef
-      ? supabase.from('properties').select('id, title, ref, slug, agent_id, agents(id, full_name, email)').eq('ref', String(b.propertyRef)).maybeSingle()
+      ? db.from('properties').select('id, title, ref, slug, agent_id, agents(id, full_name, email)').eq('ref', String(b.propertyRef)).maybeSingle()
       : null,
-    b?.agentSlug ? supabase.from('agents').select('id, full_name, email').eq('slug', String(b.agentSlug)).maybeSingle() : null,
+    b?.agentSlug ? db.from('agents').select('id, full_name, email').eq('slug', String(b.agentSlug)).maybeSingle() : null,
   ]);
   const property = propertyRes?.data ?? null;
   // The listing's own agent wins over whatever the page passed in.
@@ -128,7 +132,7 @@ export async function POST(req: Request) {
       .join('\n') || null;
   const viewingAt = typeof b?.viewingAt === 'string' && !Number.isNaN(Date.parse(b.viewingAt)) ? b.viewingAt : null;
 
-  const { error } = await supabase.from('leads').insert({
+  const { error } = await db.from('leads').insert({
     name,
     phone,
     email: email || null,
