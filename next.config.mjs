@@ -108,8 +108,9 @@ const nextConfig = {
       r('/category/:path*', '/'),
       r('/tag/:path*', '/'),
       r('/author/:path*', '/'),
-      r('/feed', '/'),
-      r('/comments/feed', '/'),
+      // /feed is now the real blog RSS feed
+      r('/comments/feed', '/feed'),
+      r('/blog/feed', '/feed'),
       r('/sitemap_index.xml', '/sitemap.xml'),
       r('/wp-sitemap.xml', '/sitemap.xml'),
       r('/:type(post|page|property|houzez_agent|houzez_agency|category|post_tag|property_type|property_status|property_feature|property_label|property_country|property_state|property_city|property_area|author|fts_builder)-sitemap.xml', '/sitemap.xml'),

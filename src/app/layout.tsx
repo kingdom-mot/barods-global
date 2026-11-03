@@ -15,6 +15,15 @@ export const metadata: Metadata = {
     'Buy, rent or shortlet property in Abeokuta, Lagos and across Nigeria with Barods Global Limited — your trusted partner in real estate and construction.',
   openGraph: { siteName: 'Barods Global Limited', type: 'website', locale: 'en_NG' },
   icons: { icon: '/brand/icon.png' },
+  // Lets browsers and feed readers find the RSS feeds.
+  alternates: {
+    types: {
+      'application/rss+xml': [
+        { url: '/feed', title: 'Barods Global Blog' },
+        { url: '/properties/feed', title: 'Barods Global: New Properties' },
+      ],
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
